@@ -254,7 +254,7 @@ function DereckUI:CreateWindow(title)
     --========================================================
     -- CREATE TAB FUNCTION (extended in Part 2)
     --========================================================
-    function DereckUI:CreateTab(tabName)
+    function DereckUI:_internalCreateTab(tabName)
         local theme = DereckUI.Theme
 
         local TabButton = New("TextButton", {
@@ -298,16 +298,11 @@ function DereckUI:CreateWindow(title)
             Page.Visible = true
         end)
 
-        -- Return element API in Part 2
-        return {Page = Page}
+        return { Page = Page }
     end
 
-    return DereckUI
+    return self
 end
-
-return DereckUI
-
-
 
 --============================================================
 -- DERECKUI V3 - PART 2
