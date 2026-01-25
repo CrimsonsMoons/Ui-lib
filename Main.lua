@@ -1,16 +1,10 @@
----=====================================================
--- DERECKUI - SHORT VERSION (TABS + BUTTONS)
--- CLEAN, FAST, FLUXUS STYLE
---=====================================================
-
 local DereckUI = {}
 
 local UIS = game:GetService("UserInputService")
 
--- Theme
 DereckUI.Theme = {
     BG = Color3.fromRGB(0,0,0),
-    Panel = Color3.fromRGB(15,15,15),
+    Panel = Color3.fromRGB(20,20,20),
     Accent = Color3.fromRGB(255,255,255),
     Text = Color3.fromRGB(255,255,255)
 }
@@ -22,29 +16,28 @@ local function stroke(obj)
     s.Thickness = 1
 end
 
--------------------------------------------------------
+------------------------------------------------------------
 -- WINDOW
--------------------------------------------------------
+------------------------------------------------------------
 function DereckUI:CreateWindow(title)
     local gui = Instance.new("ScreenGui")
     gui.Parent = game.CoreGui
-    gui.ResetOnSpawn = false
 
     local main = Instance.new("Frame")
     main.Parent = gui
-    main.Size = UDim2.new(0,450,0,300)
-    main.Position = UDim2.new(0.5,-225,0.5,-150)
+    main.Size = UDim2.new(0, 460, 0, 320)
+    main.Position = UDim2.new(0.5, -230, 0.5, -160)
     main.BackgroundColor3 = DereckUI.Theme.Panel
     stroke(main)
 
     local top = Instance.new("TextLabel")
     top.Parent = main
-    top.Size = UDim2.new(1,0,0,35)
+    top.Size = UDim2.new(1, 0, 0, 35)
     top.BackgroundColor3 = DereckUI.Theme.BG
     top.Text = title
     top.TextColor3 = DereckUI.Theme.Text
-    top.TextSize = 16
     top.Font = Enum.Font.GothamBold
+    top.TextSize = 17
     stroke(top)
 
     -- Dragging
@@ -73,80 +66,94 @@ function DereckUI:CreateWindow(title)
         end
     end)
 
-    -- Tab bar
+    ------------------------------------------------------------
+    -- TAB BAR
+    ------------------------------------------------------------
     local tabBar = Instance.new("Frame")
     tabBar.Parent = main
-    tabBar.Size = UDim2.new(1,0,0,30)
-    tabBar.Position = UDim2.new(0,0,0,35)
+    tabBar.Size = UDim2.new(1, 0, 0, 30)
+    tabBar.Position = UDim2.new(0, 0, 0, 35)
     tabBar.BackgroundColor3 = DereckUI.Theme.BG
     stroke(tabBar)
 
-    local tabList = Instance.new("UIListLayout")
-    tabList.Parent = tabBar
-    tabList.FillDirection = Enum.FillDirection.Horizontal
-    tabList.Padding = UDim.new(0,5)
+    local tabLayout = Instance.new("UIListLayout")
+    tabLayout.Parent = tabBar
+    tabLayout.FillDirection = Enum.FillDirection.Horizontal
+    tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    tabLayout.Padding = UDim.new(0, 6)
 
-    -- Page holder
+    ------------------------------------------------------------
+    -- PAGE HOLDER
+    ------------------------------------------------------------
     local pages = Instance.new("Frame")
     pages.Parent = main
-    pages.Size = UDim2.new(1,0,1,-65)
-    pages.Position = UDim2.new(0,0,0,65)
+    pages.Size = UDim2.new(1, 0, 1, -65)
+    pages.Position = UDim2.new(0, 0, 0, 65)
     pages.BackgroundTransparency = 1
 
     local pageCache = {}
 
-    -------------------------------------------------------
+    ------------------------------------------------------------
     -- WINDOW API
-    -------------------------------------------------------
+    ------------------------------------------------------------
     local window = {}
 
     function window:CreateTab(name)
+        --------------------------------------------------------
+        -- TAB BUTTON
+        --------------------------------------------------------
         local tabBtn = Instance.new("TextButton")
         tabBtn.Parent = tabBar
+        tabBtn.Size = UDim2.new(0, 120, 1, 0)
         tabBtn.Text = name
         tabBtn.BackgroundColor3 = DereckUI.Theme.Panel
         tabBtn.TextColor3 = DereckUI.Theme.Text
-        tabBtn.Size = UDim2.new(0,120,1,0)
         tabBtn.Font = Enum.Font.Gotham
+        tabBtn.TextSize = 14
+        tabBtn.AutoButtonColor = true
         stroke(tabBtn)
 
+        --------------------------------------------------------
+        -- PAGE
+        --------------------------------------------------------
         local page = Instance.new("ScrollingFrame")
         page.Parent = pages
-        page.Size = UDim2.new(1,0,1,0)
+        page.Size = UDim2.new(1, 0, 1, 0)
+        page.ScrollBarThickness = 4
         page.Visible = false
-        page.ScrollBarThickness = 3
+        page.BackgroundTransparency = 1
 
-        local layout = Instance.new("UIListLayout")
-        layout.Parent = page
-        layout.Padding = UDim.new(0,6)
+        local pageLayout = Instance.new("UIListLayout")
+        pageLayout.Parent = page
+        pageLayout.Padding = UDim.new(0, 6)
 
         pageCache[name] = page
 
         tabBtn.MouseButton1Click:Connect(function()
-            for _,pg in pairs(pageCache) do pg.Visible = false end
+            for _, p in pairs(pageCache) do p.Visible = false end
             page.Visible = true
         end)
 
-        ---------------------------------------------------
+        --------------------------------------------------------
         -- TAB API
-        ---------------------------------------------------
-        local tab = {}
+        --------------------------------------------------------
+        local tabAPI = {}
 
-        function tab:Button(text, callback)
-            local b = Instance.new("TextButton")
-            b.Parent = page
-            b.Size = UDim2.new(1,-20,0,35)
-            b.BackgroundColor3 = DereckUI.Theme.Panel
-            b.Text = text
-            b.TextColor3 = DereckUI.Theme.Text
-            b.Font = Enum.Font.Gotham
-            b.TextSize = 14
-            stroke(b)
+        function tabAPI:Button(text, callback)
+            local btn = Instance.new("TextButton")
+            btn.Parent = page
+            btn.Size = UDim2.new(1, -20, 0, 36)
+            btn.BackgroundColor3 = DereckUI.Theme.Panel
+            btn.Text = text
+            btn.TextColor3 = DereckUI.Theme.Text
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 14
+            stroke(btn)
 
-            b.MouseButton1Click:Connect(callback)
+            btn.MouseButton1Click:Connect(callback)
         end
 
-        return tab
+        return tabAPI
     end
 
     return window
