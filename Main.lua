@@ -1,5 +1,5 @@
 --============================================================
--- DERECKUI V3 - FLUXUS BLACK + NEON WHITE (SOFT-GLOW)
+--- DERECKUI V3 - FLUXUS BLACK + NEON WHITE (SOFT-GLOW)
 -- PART 1: Core Engine, Window, Dragging, Resizing, Glow System
 --============================================================
 
