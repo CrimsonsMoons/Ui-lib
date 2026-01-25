@@ -1,4 +1,4 @@
--- DereckUI V3 (Simplified Working Version)
+--- DereckUI V3 (Simplified Working Version)
 local DereckUI = {}
 
 local UIS = game:GetService("UserInputService")
