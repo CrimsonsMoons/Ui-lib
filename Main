@@ -1,0 +1,384 @@
+--====================================================
+--                 DERECK UI LIBRARY V2
+--         Premium Styled Roblox UI Library
+--====================================================
+
+local DereckUI = {}
+
+-- Default Theme (can be changed by user)
+DereckUI.Settings = {
+    Theme = {
+        Background = Color3.fromRGB(18, 18, 18),
+        Secondary = Color3.fromRGB(26, 26, 26),
+        Accent    = Color3.fromRGB(0, 170, 255),
+        Text      = Color3.fromRGB(240, 240, 240),
+        Shadow    = Color3.fromRGB(0, 0, 0),
+    },
+    Font = Enum.Font.Gotham,
+    BlurBackground = false,    -- blurred background behind UI
+    UI_Scale = 1               -- 0.5 - 2.0 scale
+}
+
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local function tween(obj, props, time)
+    TweenService:Create(obj, TweenInfo.new(time or 0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props):Play()
+end
+
+local function new(class, props)
+    local obj = Instance.new(class)
+    for i, v in next, props do obj[i] = v end
+    return obj
+end
+
+--====================================================
+-- CREATE WINDOW
+--====================================================
+function DereckUI:CreateWindow(title)
+    local theme = self.Settings.Theme
+
+    local ScreenGui = new("ScreenGui",{
+        Parent = getgenv().DereckUI_Parent or game.CoreGui,
+        ResetOnSpawn = false
+    })
+
+    -- Blur Background (toggleable)
+    if self.Settings.BlurBackground then
+        local blur = new("BlurEffect",{
+            Parent = game.Lighting,
+            Size = 0
+        })
+        tween(blur, {Size = 12}, 0.4)
+    end
+
+    local Main = new("Frame",{
+        Parent = ScreenGui,
+        Size = UDim2.new(0, 450, 0, 330),
+        Position = UDim2.new(0.5, -225, 0.5, -165),
+        BackgroundColor3 = theme.Background,
+        BorderSizePixel = 0
+    })
+    new("UICorner",{Parent = Main, CornerRadius = UDim.new(0,8)})
+
+    new("UIScale",{
+        Parent = Main,
+        Scale = self.Settings.UI_Scale
+    })
+
+    -- Drop shadow
+    local shadow = new("ImageLabel",{
+        Parent = Main,
+        ZIndex = -1,
+        AnchorPoint = Vector2.new(0.5,0.5),
+        Position = UDim2.new(0.5,0,0.5,0),
+        Size = UDim2.new(1, 40, 1, 40),
+        Image = "rbxassetid://6015897843",
+        ImageColor3 = theme.Shadow,
+        ImageTransparency = 0.55,
+        BackgroundTransparency = 1
+    })
+
+    -- Title bar
+    local Top = new("Frame",{
+        Parent = Main,
+        Size = UDim2.new(1,0,0,38),
+        BackgroundColor3 = theme.Secondary,
+        BorderSizePixel = 0
+    })
+    new("UICorner",{Parent = Top, CornerRadius = UDim.new(0,8)})
+
+    local Title = new("TextLabel",{
+        Parent = Top,
+        Text = title,
+        Font = self.Settings.Font,
+        TextSize = 16,
+        TextColor3 = theme.Text,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1,-10,1,0),
+        Position = UDim2.new(0,10,0,0),
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+
+    -- Dragging
+    local dragging, dragStart, startPos
+    Top.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                      startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    Top.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+
+    -- Tabs
+    local TabBar = new("Frame",{
+        Parent = Main,
+        Size = UDim2.new(1,0,0,35),
+        Position = UDim2.new(0,0,0,38),
+        BackgroundColor3 = theme.Background
+    })
+
+    local TabList = new("UIListLayout",{
+        Parent = TabBar,
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0,6)
+    })
+
+    local Pages = new("Frame",{
+        Parent = Main,
+        Size = UDim2.new(1,0,1,-73),
+        Position = UDim2.new(0,0,0,73),
+        BackgroundTransparency = 1
+    })
+
+    local pageRegistry = {}
+
+    --====================================================
+    -- CREATE TAB
+    --====================================================
+    function DereckUI:CreateTab(name)
+        local theme = DereckUI.Settings.Theme
+
+        local TabButton = new("TextButton",{
+            Parent = TabBar,
+            Size = UDim2.new(0,110,1,0),
+            Text = name,
+            Font = DereckUI.Settings.Font,
+            TextSize = 14,
+            TextColor3 = theme.Text,
+            BackgroundColor3 = theme.Secondary,
+            BorderSizePixel = 0
+        })
+        new("UICorner",{Parent = TabButton, CornerRadius = UDim.new(0,6)})
+
+        local Page = new("ScrollingFrame",{
+            Parent = Pages,
+            Size = UDim2.new(1,0,1,0),
+            BackgroundTransparency = 1,
+            ScrollBarThickness = 4,
+            Visible = false
+        })
+        new("UIListLayout",{Parent = Page, Padding = UDim.new(0,8)})
+
+        pageRegistry[name] = Page
+
+        TabButton.MouseButton1Click:Connect(function()
+            for _,pg in next, pageRegistry do pg.Visible = false end
+            Page.Visible = true
+            tween(TabButton, {BackgroundColor3 = theme.Accent}, 0.15)
+            task.delay(0.2,function()
+                tween(TabButton, {BackgroundColor3 = theme.Secondary}, 0.15)
+            end)
+        end)
+
+        -- ELEMENTS API
+        local Elements = {}
+
+        -------------------------------------------------------
+        -- BUTTON
+        -------------------------------------------------------
+        function Elements:Button(text, callback)
+            local b = new("TextButton",{
+                Parent = Page,
+                Size = UDim2.new(1,-10,0,34),
+                Text = text,
+                Font = DereckUI.Settings.Font,
+                TextSize = 14,
+                TextColor3 = theme.Text,
+                BackgroundColor3 = theme.Secondary,
+                BorderSizePixel = 0
+            })
+            new("UICorner",{Parent=b,CornerRadius=UDim.new(0,6)})
+            b.MouseButton1Click:Connect(function()
+                tween(b, {BackgroundColor3 = theme.Accent}, 0.1)
+                task.delay(0.15,function()
+                    tween(b, {BackgroundColor3 = theme.Secondary}, 0.15)
+                end)
+                callback()
+            end)
+        end
+
+        -------------------------------------------------------
+        -- TOGGLE
+        -------------------------------------------------------
+        function Elements:Toggle(text, default, callback)
+            local tOn = default
+
+            local holder = new("Frame",{
+                Parent = Page,
+                Size = UDim2.new(1,-10,0,34),
+                BackgroundTransparency = 1
+            })
+
+            local Label = new("TextLabel",{
+                Parent = holder,
+                Text = text,
+                Font = DereckUI.Settings.Font,
+                TextSize = 14,
+                TextColor3 = theme.Text,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1,-40,1,0),
+                TextXAlignment = Enum.TextXAlignment.Left
+            })
+
+            local box = new("Frame",{
+                Parent = holder,
+                Size = UDim2.new(0,36,0,20),
+                Position = UDim2.new(1,-40,0.5,-10),
+                BackgroundColor3 = theme.Secondary
+            })
+            new("UICorner",{Parent=box, CornerRadius=UDim.new(0,10)})
+
+            local fill = new("Frame",{
+                Parent = box,
+                Size = UDim2.new(tOn and 1 or 0,0,1,0),
+                BackgroundColor3 = theme.Accent
+            })
+            new("UICorner",{Parent=fill, CornerRadius=UDim.new(0,10)})
+
+            callback(tOn)
+
+            box.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    tOn = not tOn
+                    tween(fill, {Size = UDim2.new(tOn and 1 or 0,0,1,0)}, 0.18)
+                    callback(tOn)
+                end
+            end)
+        end
+
+        -------------------------------------------------------
+        -- SLIDER
+        -------------------------------------------------------
+        function Elements:Slider(text, min, max, default, callback)
+            local holder = new("Frame",{
+                Parent = Page,
+                Size = UDim2.new(1,-10,0,50),
+                BackgroundTransparency = 1
+            })
+
+            local label = new("TextLabel",{
+                Parent = holder,
+                Text = text.." : "..default,
+                Font = DereckUI.Settings.Font,
+                TextSize = 13,
+                TextColor3 = theme.Text,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1,0,0,18)
+            })
+
+            local bar = new("Frame",{
+                Parent = holder,
+                Size = UDim2.new(1,0,0,10),
+                Position = UDim2.new(0,0,0,25),
+                BackgroundColor3 = theme.Secondary,
+                BorderSizePixel = 0
+            })
+            new("UICorner",{Parent=bar,CornerRadius=UDim.new(0,6)})
+
+            local fill = new("Frame",{
+                Parent = bar,
+                Size = UDim2.new((default-min)/(max-min),0,1,0),
+                BackgroundColor3 = theme.Accent,
+                BorderSizePixel = 0
+            })
+            new("UICorner",{Parent=fill,CornerRadius=UDim.new(0,6)})
+
+            local dragging = false
+
+            bar.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+            end)
+            UIS.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+            end)
+            UIS.InputChanged:Connect(function(input)
+                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    local pos = math.clamp((input.Position.X - bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)
+                    tween(fill, {Size = UDim2.new(pos,0,1,0)}, 0.05)
+                    local value = math.floor(min + (max-min) * pos)
+                    label.Text = text.." : "..value
+                    callback(value)
+                end
+            end)
+        end
+
+        -------------------------------------------------------
+        -- DROPDOWN
+        -------------------------------------------------------
+        function Elements:Dropdown(text, list, callback)
+            local open = false
+            local height = 34 + (#list * 28)
+
+            local frame = new("Frame",{
+                Parent = Page,
+                Size = UDim2.new(1,-10,0,34),
+                BackgroundColor3 = theme.Secondary
+            })
+            new("UICorner",{Parent=frame,CornerRadius=UDim.new(0,6)})
+
+            local label = new("TextLabel",{
+                Parent = frame,
+                Size = UDim2.new(1,-20,1,0),
+                Position = UDim2.new(0,10,0,0),
+                BackgroundTransparency = 1,
+                Text = text.." ▼",
+                Font = DereckUI.Settings.Font,
+                TextSize = 14,
+                TextColor3 = theme.Text,
+                TextXAlignment = Enum.TextXAlignment.Left
+            })
+
+            local opts = {}
+
+            label.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    open = not open
+                    tween(frame, {Size = open and UDim2.new(1,-10,0,height) or UDim2.new(1,-10,0,34)}, 0.18)
+                    for _,o in ipairs(opts) do o.Visible = open end
+                end
+            end)
+
+            for i,v in ipairs(list) do
+                local o = new("TextButton",{
+                    Parent = frame,
+                    Size = UDim2.new(1,-20,0,28),
+                    Position = UDim2.new(0,10,0,34 + (i - 1)*28),
+                    BackgroundColor3 = theme.Background,
+                    TextColor3 = theme.Text,
+                    Font = DereckUI.Settings.Font,
+                    TextSize = 13,
+                    Text = v,
+                    Visible = false,
+                    BorderSizePixel = 0
+                })
+                new("UICorner",{Parent=o,CornerRadius=UDim.new(0,6)})
+
+                o.MouseButton1Click:Connect(function()
+                    callback(v)
+                    open = false
+                    tween(frame, {Size = UDim2.new(1,-10,0,34)}, 0.2)
+                    for _,o2 in ipairs(opts) do o2.Visible = false end
+                end)
+
+                table.insert(opts,o)
+            end
+        end
+
+        return Elements
+    end
+
+    return self
+end
+
+return DereckUI
