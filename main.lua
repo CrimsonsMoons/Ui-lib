@@ -1,8 +1,13 @@
 --// =========================================================
---// NOVA UI LIBRARY
---// Clean UI-only library
---// Patched: config creation, color picker, fade restore,
---// multi dropdown, hide/show fix
+--// NOVA UI LIBRARY + GAME HUB (ONE BIG LOCAL SCRIPT)
+--// One-file version
+--// Fixes:
+--// - Game tab directly above Settings
+--// - Hide/show restore fixed
+--// - Auto-refresh targets
+--// - No self in target options
+--// - Anti Seat destroys all seats in character continuously
+--// - Stronger built-in prediction stack
 --// =========================================================
 
 local Players = game:GetService("Players")
@@ -11,8 +16,14 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
+local DUMMIES_FOLDER = Workspace:WaitForChild("Players")
+
+--// =========================================================
+--// LIBRARY
+--// =========================================================
 
 local Library = {}
 Library.__index = Library
@@ -34,7 +45,7 @@ local Theme = {
 local function Tween(obj, time, props, style, direction)
     local t = TweenService:Create(
         obj,
-        TweenInfo.new(time or 0.18, style or Enum.EasingStyle.Quad, direction or Enum.EasingDirection.Out),
+        TweenInfo.new(time or 0.16, style or Enum.EasingStyle.Quad, direction or Enum.EasingDirection.Out),
         props
     )
     t:Play()
@@ -190,7 +201,7 @@ function Library.new(config)
         Parent = self.TopBar,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 118, 0, 0),
-        Size = UDim2.new(0, 360, 1, 0),
+        Size = UDim2.new(0, 420, 1, 0),
         Font = Enum.Font.Gotham,
         Text = self.Subtitle,
         TextColor3 = Theme.SubText,
@@ -293,7 +304,6 @@ function Library.new(config)
     self:_bindDragging()
     self:_bindToggleKey()
     self:_bindRainbowUpdater()
-    self:_createSettingsTab()
 
     return self
 end
@@ -499,16 +509,6 @@ function Library:LoadConfig(name)
     self.DragSmoothing = tonumber(data.DragSmoothing) or self.DragSmoothing
     self.Flags = data.Flags or {}
 
-    if self._settingsRefs then
-        self._settingsRefs.AutoLoad:Set(self.AutoLoadConfig)
-        self._settingsRefs.AutoSave:Set(self.AutoSaveConfig)
-        self._settingsRefs.RainbowAccent:Set(self.RainbowAccent)
-        self._settingsRefs.RainbowText:Set(self.RainbowText)
-        self._settingsRefs.KeybindLabel:Set("Current Toggle Key: " .. self.ToggleKey.Name)
-        self._settingsRefs.DragSmooth:Set(math.floor(self.DragSmoothing * 100 + 0.5))
-        self._settingsRefs.ConfigNameInput:Set(name)
-    end
-
     self:RefreshUIIntegrity()
     return true
 end
@@ -545,9 +545,6 @@ end
 
 function Library:SetToggleKey(keyCode)
     self.ToggleKey = keyCode
-    if self._settingsRefs and self._settingsRefs.KeybindLabel then
-        self._settingsRefs.KeybindLabel:Set("Current Toggle Key: " .. keyCode.Name)
-    end
     self:_notifyAutoSave()
 end
 
@@ -1123,7 +1120,6 @@ function Library:_newTabObject(name, isBottom)
 
             local function Refresh()
                 toggleRef:RefreshColorOnly()
-
                 if ToggleState then
                     Tween(Knob, 0.14, {Position = UDim2.new(1, -20, 0.5, -9)})
                 else
@@ -1206,7 +1202,7 @@ function Library:_newTabObject(name, isBottom)
                 BackgroundTransparency = 1,
                 AnchorPoint = Vector2.new(1, 0),
                 Position = UDim2.new(1, -12, 0, 6),
-                Size = UDim2.new(0, 60, 0, 18),
+                Size = UDim2.new(0, 70, 0, 18),
                 Font = Enum.Font.Gotham,
                 Text = tostring(Value),
                 TextColor3 = Theme.SubText,
@@ -1226,16 +1222,19 @@ function Library:_newTabObject(name, isBottom)
             local Fill = Create("Frame", {
                 Parent = Bar,
                 BackgroundColor3 = lib.Theme.Accent,
-                Size = UDim2.new((Value - min) / (max - min), 0, 1, 0)
+                Size = UDim2.new((Value - min) / math.max(max - min, 1), 0, 1, 0)
             })
             AddCorner(Fill, UDim.new(1, 0))
             lib:_registerAccent(Fill, "BackgroundColor3")
 
             local function SetValueFromX(x)
                 local percent = math.clamp((x - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
-                Value = math.floor((min + ((max - min) * percent)) + 0.5)
+                Value = min + ((max - min) * percent)
+                if math.floor(min) == min and math.floor(max) == max then
+                    Value = math.floor(Value + 0.5)
+                end
                 Fill.Size = UDim2.new(percent, 0, 1, 0)
-                ValueLabel.Text = tostring(Value)
+                ValueLabel.Text = string.format("%.3f", Value):gsub("(%..-)0+$", "%1"):gsub("%.$", "")
                 if flagName ~= nil then
                     lib.Flags[flagName] = Value
                 end
@@ -1264,12 +1263,14 @@ function Library:_newTabObject(name, isBottom)
                 end
             end)
 
+            ValueLabel.Text = string.format("%.3f", Value):gsub("(%..-)0+$", "%1"):gsub("%.$", "")
+
             return {
                 Set = function(_, newValue)
                     newValue = math.clamp(tonumber(newValue) or Value, min, max)
                     Value = newValue
-                    Fill.Size = UDim2.new((Value - min) / (max - min), 0, 1, 0)
-                    ValueLabel.Text = tostring(Value)
+                    Fill.Size = UDim2.new((Value - min) / math.max(max - min, 1), 0, 1, 0)
+                    ValueLabel.Text = string.format("%.3f", Value):gsub("(%..-)0+$", "%1"):gsub("%.$", "")
                     if flagName ~= nil then
                         lib.Flags[flagName] = Value
                     end
@@ -1338,7 +1339,8 @@ function Library:_newTabObject(name, isBottom)
                 Text = tostring(Selected),
                 TextColor3 = Theme.SubText,
                 TextSize = 12,
-                TextXAlignment = Enum.TextXAlignment.Right
+                TextXAlignment = Enum.TextXAlignment.Right,
+                TextTruncate = Enum.TextTruncate.AtEnd
             })
             lib:_registerSubText(Current)
 
@@ -1373,7 +1375,7 @@ function Library:_newTabObject(name, isBottom)
 
             local function rebuild()
                 for _, btn in ipairs(optionButtons) do
-                    if btn then
+                    if btn and btn.Parent then
                         btn:Destroy()
                     end
                 end
@@ -1470,14 +1472,7 @@ function Library:_newTabObject(name, isBottom)
                 end
             else
                 if flagName ~= nil then
-                    local packed = {}
-                    for name, yes in pairs(SelectedMap) do
-                        if yes then
-                            table.insert(packed, name)
-                        end
-                    end
-                    table.sort(packed)
-                    lib.Flags[flagName] = packed
+                    lib.Flags[flagName] = {}
                 end
             end
 
@@ -1589,11 +1584,9 @@ function Library:_newTabObject(name, isBottom)
                 if isSelected then
                     btn.BackgroundColor3 = lib.Theme.Accent
                     check.Text = "✓"
-                    check.TextColor3 = Theme.Text
                 else
                     btn.BackgroundColor3 = Theme.Surface3
                     check.Text = ""
-                    check.TextColor3 = Theme.SubText
                 end
             end
 
@@ -1797,6 +1790,10 @@ function Library:CreateTab(name)
     return self:_newTabObject(name, false)
 end
 
+function Library:CreateBottomTab(name)
+    return self:_newTabObject(name, true)
+end
+
 function Library:_createColorPicker(section)
     local Picker = Create("Frame", {
         Parent = section.Holder,
@@ -1975,8 +1972,8 @@ function Library:_createColorPicker(section)
     apply()
 end
 
-function Library:_createSettingsTab()
-    local Tab = self:_newTabObject("Settings", true)
+function Library:CreateSettingsTab()
+    local Tab = self:CreateBottomTab("Settings")
     self.SettingsTab = Tab
     self._settingsRefs = {}
 
@@ -2057,7 +2054,8 @@ function Library:_createSettingsTab()
     end)
 
     local KeybindSection = Tab:CreateSection("Keybind")
-    self._settingsRefs.KeybindLabel = KeybindSection:CreateLabel("Current Toggle Key: " .. self.ToggleKey.Name)
+    local KeybindLabel = KeybindSection:CreateLabel("Current Toggle Key: " .. self.ToggleKey.Name)
+    self._settingsRefs.KeybindLabel = KeybindLabel
 
     KeybindSection:CreateButton("Set Toggle Key", function()
         if self._isCapturingKeybind then
@@ -2065,7 +2063,7 @@ function Library:_createSettingsTab()
         end
 
         self._isCapturingKeybind = true
-        self._settingsRefs.KeybindLabel:Set("Press any key...")
+        KeybindLabel:Set("Current Toggle Key: Press any key...")
 
         local captureConn
         captureConn = UserInputService.InputBegan:Connect(function(input, gp)
@@ -2075,6 +2073,7 @@ function Library:_createSettingsTab()
 
             if input.UserInputType == Enum.UserInputType.Keyboard then
                 self:SetToggleKey(input.KeyCode)
+                KeybindLabel:Set("Current Toggle Key: " .. input.KeyCode.Name)
                 self:Notify("Keybind", "Toggle key set to " .. input.KeyCode.Name, 2)
                 self._isCapturingKeybind = false
                 if captureConn then
@@ -2123,4 +2122,1031 @@ function Library:Destroy()
     end
 end
 
-return Library
+--// =========================================================
+--// HUB
+--// =========================================================
+
+local Window = Library.new({
+    Name = "NovaHub",
+    Title = "Nova Hub",
+    Subtitle = "Dummy / Player Control",
+    Width = 940,
+    Height = 620,
+    ToggleKey = Enum.KeyCode.RightShift
+})
+
+Window:Notify("Loaded", "Main hub loaded.", 3)
+
+local State = {
+    NotifyJoinLeave = false,
+    TeleportEnabled = false,
+    AntiSeat = false,
+    AutoRefreshTargets = true,
+
+    CurrentTargetName = nil,
+    SelectedTargets = {},
+    Blacklisted = {},
+
+    TeleportMode = "Loop TP",
+    OrbitRadius = 4,
+    OrbitSpeed = 2,
+    LoopSpeed = 0.12,
+    HeadSitHeight = 2.3,
+
+    PredictionBase = 0.12,
+    PredictionVelocityFactor = 0.020,
+    PredictionAccelerationFactor = 0.010,
+    PredictionLookFactor = 1.5,
+    PredictionAirBonus = 0.10,
+    PredictionYVelocityFactor = 0.10,
+    PredictionClamp = 0.95,
+    CloseRangeBoost = 0.18,
+    FarRangeBoost = 0.10,
+    StrafeFactor = 0.25,
+    TargetHeightOffset = 0.0,
+}
+
+local TeleportConn
+local AntiSeatConn
+local AntiSeatCharConn
+local RefreshTargetsConn
+local thumbCache = {}
+local userIdCache = {}
+local velocityHistory = {}
+
+local function getCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local function getHRP()
+    local char = getCharacter()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function getHumanoid(model)
+    return model and model:FindFirstChildOfClass("Humanoid") or nil
+end
+
+local function getTorso(model)
+    if not model then
+        return nil
+    end
+    return model:FindFirstChild("HumanoidRootPart")
+        or model:FindFirstChild("UpperTorso")
+        or model:FindFirstChild("Torso")
+        or model:FindFirstChild("Head")
+end
+
+local function getRootVelocity(part)
+    if not part then
+        return Vector3.zero
+    end
+    local ok, vel = pcall(function()
+        return part.AssemblyLinearVelocity
+    end)
+    return ok and vel or Vector3.zero
+end
+
+local function getDistance(model)
+    local hrp = getHRP()
+    local torso = getTorso(model)
+    if not hrp or not torso then
+        return math.huge
+    end
+    return (hrp.Position - torso.Position).Magnitude
+end
+
+local function getStatus(model)
+    local hum = getHumanoid(model)
+    if not hum then
+        return "No Humanoid"
+    end
+    if hum.Health <= 0 then
+        return "Dead"
+    end
+
+    local bodyEffects = model:FindFirstChild("BodyEffects")
+    local ko = bodyEffects and bodyEffects:FindFirstChild("K.O")
+    if ko and ko.Value == true then
+        return "Knocked"
+    end
+
+    return "Alive"
+end
+
+local function getHP(model)
+    local hum = getHumanoid(model)
+    return hum and math.floor(hum.Health + 0.5) or 0
+end
+
+local function getAllTargets()
+    local out = {}
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and getTorso(plr.Character) then
+            table.insert(out, {
+                Name = plr.Name,
+                DisplayName = plr.DisplayName,
+                IsPlayer = true,
+                Model = plr.Character,
+                Player = plr,
+            })
+        end
+    end
+
+    for _, obj in ipairs(DUMMIES_FOLDER:GetChildren()) do
+        if obj:IsA("Model") and getTorso(obj) then
+            local exists = false
+            for _, item in ipairs(out) do
+                if item.Name == obj.Name then
+                    exists = true
+                    break
+                end
+            end
+
+            if not exists and obj.Name ~= LocalPlayer.Name then
+                table.insert(out, {
+                    Name = obj.Name,
+                    DisplayName = obj.Name,
+                    IsPlayer = false,
+                    Model = obj,
+                    Player = nil,
+                })
+            end
+        end
+    end
+
+    table.sort(out, function(a, b)
+        return a.Name:lower() < b.Name:lower()
+    end)
+
+    return out
+end
+
+local function getTargetNames()
+    local names = {}
+    for _, item in ipairs(getAllTargets()) do
+        if item.Name ~= LocalPlayer.Name then
+            table.insert(names, item.Name)
+        end
+    end
+    if #names == 0 then
+        table.insert(names, "NoTargets")
+    end
+    return names
+end
+
+local function getTargetByName(name)
+    if not name or name == "" or name == "NoTargets" or name == LocalPlayer.Name then
+        return nil, nil
+    end
+
+    local plr = Players:FindFirstChild(name)
+    if plr and plr ~= LocalPlayer and plr.Character and getTorso(plr.Character) then
+        return plr.Character, plr
+    end
+
+    local dummy = DUMMIES_FOLDER:FindFirstChild(name)
+    if dummy and dummy:IsA("Model") and getTorso(dummy) and dummy ~= LocalPlayer.Character then
+        return dummy, nil
+    end
+
+    return nil, nil
+end
+
+local function getDisplayName(name)
+    local plr = Players:FindFirstChild(name)
+    if plr then
+        return plr.DisplayName
+    end
+    return name
+end
+
+local function getUserIdFromNameSafe(name)
+    if userIdCache[name] ~= nil then
+        return userIdCache[name]
+    end
+
+    local plr = Players:FindFirstChild(name)
+    if plr and plr ~= LocalPlayer then
+        userIdCache[name] = plr.UserId
+        return plr.UserId
+    end
+
+    local ok, userId = pcall(function()
+        return Players:GetUserIdFromNameAsync(name)
+    end)
+
+    if ok then
+        userIdCache[name] = userId
+        return userId
+    end
+
+    userIdCache[name] = false
+    return nil
+end
+
+local function getThumbnailForName(name)
+    if name == LocalPlayer.Name then
+        return nil
+    end
+
+    if thumbCache[name] ~= nil then
+        return thumbCache[name] ~= false and thumbCache[name] or nil
+    end
+
+    local userId = getUserIdFromNameSafe(name)
+    if not userId then
+        thumbCache[name] = false
+        return nil
+    end
+
+    local ok, image = pcall(function()
+        return Players:GetUserThumbnailAsync(
+            userId,
+            Enum.ThumbnailType.HeadShot,
+            Enum.ThumbnailSize.Size100x100
+        )
+    end)
+
+    if ok and image and image ~= "" then
+        thumbCache[name] = image
+        return image
+    end
+
+    thumbCache[name] = false
+    return nil
+end
+
+local function isBlacklisted(name)
+    return name ~= nil and State.Blacklisted[name] == true
+end
+
+local function getFilteredTargetNames()
+    local names = {}
+    for _, item in ipairs(getAllTargets()) do
+        if item.Name ~= LocalPlayer.Name and not isBlacklisted(item.Name) then
+            table.insert(names, item.Name)
+        end
+    end
+
+    table.sort(names, function(a, b)
+        return a:lower() < b:lower()
+    end)
+
+    if #names == 0 then
+        table.insert(names, "NoTargets")
+    end
+
+    return names
+end
+
+local function sanitizeSelectedTargets()
+    local cleaned = {}
+    local seen = {}
+
+    for _, name in ipairs(State.SelectedTargets) do
+        if name ~= LocalPlayer.Name and not seen[name] and not isBlacklisted(name) then
+            local model = getTargetByName(name)
+            if model then
+                seen[name] = true
+                table.insert(cleaned, name)
+            end
+        end
+    end
+
+    State.SelectedTargets = cleaned
+end
+
+local function getBlacklistList()
+    local out = {}
+    for name, yes in pairs(State.Blacklisted) do
+        if yes and name ~= LocalPlayer.Name then
+            table.insert(out, name)
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+local function sampleAcceleration(torso)
+    if not torso then
+        return Vector3.zero
+    end
+
+    local key = tostring(torso:GetDebugId())
+    local now = tick()
+    local vel = getRootVelocity(torso)
+    local record = velocityHistory[key]
+
+    if not record then
+        velocityHistory[key] = {
+            LastVelocity = vel,
+            LastTime = now,
+            Acceleration = Vector3.zero
+        }
+        return Vector3.zero
+    end
+
+    local dt = math.max(now - record.LastTime, 1/240)
+    local accel = (vel - record.LastVelocity) / dt
+
+    record.LastVelocity = vel
+    record.LastTime = now
+    record.Acceleration = accel
+
+    return accel
+end
+
+local function predictPosition(model)
+    local torso = getTorso(model)
+    if not torso then
+        return nil, nil, nil, 0
+    end
+
+    local hum = getHumanoid(model)
+    local vel = getRootVelocity(torso)
+    local accel = sampleAcceleration(torso)
+    local hrp = getHRP()
+    local dist = hrp and (hrp.Position - torso.Position).Magnitude or 0
+    local speed = vel.Magnitude
+
+    local timeAhead = State.PredictionBase
+        + (speed * State.PredictionVelocityFactor)
+        + (accel.Magnitude * State.PredictionAccelerationFactor)
+
+    if hum and hum.FloorMaterial == Enum.Material.Air then
+        timeAhead += State.PredictionAirBonus
+    end
+
+    if dist <= 10 then
+        timeAhead += State.CloseRangeBoost
+    elseif dist >= 35 then
+        timeAhead += State.FarRangeBoost
+    end
+
+    timeAhead = math.clamp(timeAhead, 0, State.PredictionClamp)
+
+    local flatLook = torso.CFrame.LookVector
+    flatLook = Vector3.new(flatLook.X, 0, flatLook.Z)
+    if flatLook.Magnitude > 0 then
+        flatLook = flatLook.Unit
+    end
+
+    local strafe = Vector3.new(-flatLook.Z, 0, flatLook.X)
+
+    local predicted =
+        torso.Position
+        + (vel * timeAhead)
+        + (accel * (0.5 * timeAhead * timeAhead))
+        + (flatLook * State.PredictionLookFactor)
+        + (strafe * (vel.Magnitude > 8 and State.StrafeFactor or 0))
+
+    predicted = Vector3.new(
+        predicted.X,
+        torso.Position.Y + (vel.Y * math.min(timeAhead + State.PredictionYVelocityFactor, 0.35)) + State.TargetHeightOffset,
+        predicted.Z
+    )
+
+    return predicted, torso, vel, timeAhead
+end
+
+local function lookAt(fromPos, toPos)
+    return CFrame.new(fromPos, toPos)
+end
+
+local function tpToTarget(mode, targetModel, angle)
+    local hrp = getHRP()
+    if not hrp or not targetModel then
+        return
+    end
+
+    local predicted, torso, vel = predictPosition(targetModel)
+    if not predicted or not torso then
+        return
+    end
+
+    if mode == "Loop TP" then
+        local moveDir = Vector3.new(vel.X, 0, vel.Z)
+        if moveDir.Magnitude < 0.1 then
+            moveDir = Vector3.new(torso.CFrame.LookVector.X, 0, torso.CFrame.LookVector.Z)
+        end
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit
+        end
+
+        local flip = math.sin(angle) >= 0 and 1 or -1
+        local offset = moveDir * (3 * flip)
+        local pos = predicted + offset
+        hrp.CFrame = lookAt(pos, predicted)
+
+    elseif mode == "Orbit" then
+        local offset = Vector3.new(
+            math.cos(angle) * State.OrbitRadius,
+            0.5,
+            math.sin(angle) * State.OrbitRadius
+        )
+        local pos = predicted + offset
+        hrp.CFrame = lookAt(pos, predicted)
+
+    elseif mode == "Head Sit" then
+        local pos = predicted + Vector3.new(0, State.HeadSitHeight, 0)
+        hrp.CFrame = lookAt(pos, predicted)
+    end
+end
+
+local function destroyAllSeats(container)
+    if not container then
+        return
+    end
+    for _, obj in ipairs(container:GetDescendants()) do
+        if obj:IsA("Seat") or obj:IsA("VehicleSeat") then
+            pcall(function()
+                obj:Destroy()
+            end)
+        end
+    end
+end
+
+local function stopAntiSeat()
+    if AntiSeatConn then
+        AntiSeatConn:Disconnect()
+        AntiSeatConn = nil
+    end
+    if AntiSeatCharConn then
+        AntiSeatCharConn:Disconnect()
+        AntiSeatCharConn = nil
+    end
+end
+
+local function hookAntiSeatCharacter(char)
+    destroyAllSeats(char)
+
+    char.DescendantAdded:Connect(function(obj)
+        if State.AntiSeat and (obj:IsA("Seat") or obj:IsA("VehicleSeat")) then
+            task.defer(function()
+                if obj and obj.Parent then
+                    pcall(function()
+                        obj:Destroy()
+                    end)
+                end
+            end)
+        end
+    end)
+end
+
+local function startAntiSeat()
+    stopAntiSeat()
+
+    local char = LocalPlayer.Character
+    if char then
+        hookAntiSeatCharacter(char)
+    end
+
+    AntiSeatCharConn = LocalPlayer.CharacterAdded:Connect(function(newChar)
+        if State.AntiSeat then
+            hookAntiSeatCharacter(newChar)
+        end
+    end)
+
+    AntiSeatConn = RunService.Heartbeat:Connect(function()
+        if not State.AntiSeat then
+            return
+        end
+
+        local char = LocalPlayer.Character
+        if not char then
+            return
+        end
+
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum and hum.Sit then
+            hum.Sit = false
+            pcall(function()
+                hum.Jump = true
+            end)
+        end
+
+        destroyAllSeats(char)
+    end)
+end
+
+local function stopTeleport()
+    State.TeleportEnabled = false
+    if TeleportConn then
+        TeleportConn:Disconnect()
+        TeleportConn = nil
+    end
+end
+
+local function startTeleportLoop()
+    stopTeleport()
+
+    State.TeleportEnabled = true
+    local angle = 0
+    local currentIndex = 1
+    local lastSwap = 0
+
+    TeleportConn = RunService.Heartbeat:Connect(function(dt)
+        if not State.TeleportEnabled then
+            return
+        end
+
+        angle += dt * (State.OrbitSpeed * 6)
+
+        if State.TeleportMode == "Multi Loop" then
+            sanitizeSelectedTargets()
+
+            if #State.SelectedTargets == 0 then
+                return
+            end
+
+            if tick() - lastSwap >= State.LoopSpeed then
+                lastSwap = tick()
+
+                if currentIndex > #State.SelectedTargets then
+                    currentIndex = 1
+                end
+
+                local targetName = State.SelectedTargets[currentIndex]
+                if not isBlacklisted(targetName) then
+                    local model = getTargetByName(targetName)
+                    if model then
+                        tpToTarget("Loop TP", model, angle)
+                    end
+                end
+
+                currentIndex += 1
+            end
+        else
+            if isBlacklisted(State.CurrentTargetName) then
+                return
+            end
+
+            local model = getTargetByName(State.CurrentTargetName)
+            if model then
+                tpToTarget(State.TeleportMode, model, angle)
+            end
+        end
+    end)
+end
+
+local function addSelected(name)
+    if not name or name == "NoTargets" or name == LocalPlayer.Name or isBlacklisted(name) then
+        return
+    end
+    if not table.find(State.SelectedTargets, name) then
+        table.insert(State.SelectedTargets, name)
+    end
+end
+
+local function removeSelected(name)
+    local i = table.find(State.SelectedTargets, name)
+    if i then
+        table.remove(State.SelectedTargets, i)
+    end
+end
+
+local function selectedText()
+    if #State.SelectedTargets == 0 then
+        return "Selected: none"
+    end
+    return "Selected: " .. table.concat(State.SelectedTargets, ", ")
+end
+
+local function blacklistText()
+    local names = getBlacklistList()
+    if #names == 0 then
+        return "Blacklisted: none"
+    end
+    return "Blacklisted: " .. table.concat(names, ", ")
+end
+
+local function notifyWithThumb(title, body, targetName, duration)
+    local thumb = getThumbnailForName(targetName)
+    Window:Notify(title, body, duration or 3, thumb)
+end
+
+local MainTab = Window:CreateTab("Main")
+local GameTab = Window:CreateBottomTab("Game")
+local SettingsTab = Window:CreateBottomTab("Settings")
+
+local MainSection = MainTab:CreateSection("Main")
+MainSection:CreateLabel("Game controls are directly above Settings.")
+MainSection:CreateButton("Stop Teleport", function()
+    stopTeleport()
+    Window:Notify("Teleport", "Stopped.", 2)
+end)
+
+local TargetSection = GameTab:CreateSection("Targets")
+local SelectedLabel = TargetSection:CreateLabel("Selected: none")
+local BlacklistLabel = TargetSection:CreateLabel("Blacklisted: none")
+local InfoLabel = TargetSection:CreateLabel("Info: none")
+
+local ThumbFrame = Create("Frame", {
+    Parent = TargetSection.Holder,
+    BackgroundColor3 = Theme.Surface2,
+    Size = UDim2.new(1, 0, 0, 74)
+})
+AddCorner(ThumbFrame, UDim.new(0, 8))
+AddStroke(ThumbFrame, Theme.Border, 1, 0)
+
+local ThumbTitle = Create("TextLabel", {
+    Parent = ThumbFrame,
+    BackgroundTransparency = 1,
+    Position = UDim2.new(0, 12, 0, 8),
+    Size = UDim2.new(1, -24, 0, 16),
+    Font = Enum.Font.GothamMedium,
+    Text = "Thumbnail Preview",
+    TextColor3 = Theme.Text,
+    TextSize = 13,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+
+local ThumbImage = Create("ImageLabel", {
+    Parent = ThumbFrame,
+    BackgroundColor3 = Theme.Surface3,
+    Position = UDim2.new(0, 12, 0, 28),
+    Size = UDim2.new(0, 34, 0, 34),
+    Image = "",
+    ScaleType = Enum.ScaleType.Crop
+})
+AddCorner(ThumbImage, UDim.new(0, 6))
+AddStroke(ThumbImage, Theme.Border, 1, 0)
+
+local ThumbInfo = Create("TextLabel", {
+    Parent = ThumbFrame,
+    BackgroundTransparency = 1,
+    Position = UDim2.new(0, 56, 0, 28),
+    Size = UDim2.new(1, -68, 0, 34),
+    Font = Enum.Font.Gotham,
+    Text = "No thumbnail",
+    TextColor3 = Theme.SubText,
+    TextSize = 12,
+    TextWrapped = true,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+
+Window:_registerMainText(ThumbTitle)
+Window:_registerSubText(ThumbInfo)
+
+local CurrentTargetDropdown
+local SelectionDropdown
+local BlacklistDropdown
+
+local function refreshDropdownData()
+    if not CurrentTargetDropdown or not SelectionDropdown or not BlacklistDropdown then
+        return
+    end
+
+    sanitizeSelectedTargets()
+
+    local filteredNames = getFilteredTargetNames()
+    local allNames = getTargetNames()
+
+    CurrentTargetDropdown:Refresh(filteredNames)
+    SelectionDropdown:Refresh(filteredNames)
+    BlacklistDropdown:Refresh(allNames)
+
+    if not State.CurrentTargetName or State.CurrentTargetName == LocalPlayer.Name or isBlacklisted(State.CurrentTargetName) then
+        State.CurrentTargetName = filteredNames[1]
+        CurrentTargetDropdown:Set(State.CurrentTargetName)
+    end
+
+    SelectionDropdown:Set(State.SelectedTargets)
+    BlacklistDropdown:Set(getBlacklistList())
+
+    SelectedLabel:Set(selectedText())
+    BlacklistLabel:Set(blacklistText())
+end
+
+local targetNames = getFilteredTargetNames()
+
+CurrentTargetDropdown = TargetSection:CreateDropdown(
+    "Current Target",
+    targetNames,
+    targetNames[1],
+    function(value)
+        State.CurrentTargetName = value
+    end,
+    "CurrentTarget"
+)
+
+if targetNames[1] ~= "NoTargets" then
+    State.CurrentTargetName = targetNames[1]
+end
+
+SelectionDropdown = TargetSection:CreateMultiDropdown(
+    "Selection Dropdown",
+    targetNames,
+    {},
+    function(selectedList)
+        State.SelectedTargets = {}
+
+        for _, name in ipairs(selectedList) do
+            if name ~= "NoTargets" and name ~= LocalPlayer.Name and not isBlacklisted(name) then
+                table.insert(State.SelectedTargets, name)
+            end
+        end
+
+        SelectedLabel:Set(selectedText())
+    end,
+    "SelectionDropdown"
+)
+
+BlacklistDropdown = TargetSection:CreateMultiDropdown(
+    "Blacklist Dropdown",
+    getTargetNames(),
+    {},
+    function(selectedList)
+        State.Blacklisted = {}
+
+        for _, name in ipairs(selectedList) do
+            if name ~= "NoTargets" and name ~= LocalPlayer.Name then
+                State.Blacklisted[name] = true
+            end
+        end
+
+        sanitizeSelectedTargets()
+        refreshDropdownData()
+    end,
+    "BlacklistDropdown"
+)
+
+do
+    local savedBlacklist = Window.Flags["BlacklistDropdown"]
+    if type(savedBlacklist) == "table" then
+        State.Blacklisted = {}
+        for _, name in ipairs(savedBlacklist) do
+            if name ~= LocalPlayer.Name then
+                State.Blacklisted[name] = true
+            end
+        end
+    end
+end
+
+do
+    local savedSelection = Window.Flags["SelectionDropdown"]
+    if type(savedSelection) == "table" then
+        State.SelectedTargets = {}
+        for _, name in ipairs(savedSelection) do
+            if name ~= LocalPlayer.Name and not State.Blacklisted[name] then
+                table.insert(State.SelectedTargets, name)
+            end
+        end
+    end
+end
+
+refreshDropdownData()
+
+TargetSection:CreateToggle("Auto Refresh Targets", true, function(state)
+    State.AutoRefreshTargets = state
+end, "AutoRefreshTargets")
+
+TargetSection:CreateButton("Refresh All Target Lists", function()
+    refreshDropdownData()
+    Window:Notify("Targets", "Target lists refreshed.", 2)
+end)
+
+TargetSection:CreateButton("Add Current To Selection", function()
+    addSelected(State.CurrentTargetName)
+    SelectionDropdown:Set(State.SelectedTargets)
+    SelectedLabel:Set(selectedText())
+end)
+
+TargetSection:CreateButton("Remove Current From Selection", function()
+    removeSelected(State.CurrentTargetName)
+    SelectionDropdown:Set(State.SelectedTargets)
+    SelectedLabel:Set(selectedText())
+end)
+
+TargetSection:CreateButton("Clear Selection", function()
+    table.clear(State.SelectedTargets)
+    SelectionDropdown:Set({})
+    SelectedLabel:Set(selectedText())
+end)
+
+TargetSection:CreateButton("Blacklist Current", function()
+    local current = State.CurrentTargetName
+    if current and current ~= "NoTargets" and current ~= LocalPlayer.Name then
+        State.Blacklisted[current] = true
+        sanitizeSelectedTargets()
+        refreshDropdownData()
+        Window:Notify("Blacklist", current .. " added.", 2, getThumbnailForName(current))
+    end
+end)
+
+TargetSection:CreateButton("Unblacklist Current", function()
+    local current = State.CurrentTargetName
+    if current and current ~= LocalPlayer.Name then
+        State.Blacklisted[current] = nil
+        refreshDropdownData()
+        Window:Notify("Blacklist", current .. " removed.", 2, getThumbnailForName(current))
+    end
+end)
+
+TargetSection:CreateButton("Clear Blacklist", function()
+    table.clear(State.Blacklisted)
+    refreshDropdownData()
+    Window:Notify("Blacklist", "Cleared.", 2)
+end)
+
+local TeleportSection = GameTab:CreateSection("Teleport")
+TeleportSection:CreateDropdown(
+    "Mode",
+    {"Loop TP", "Orbit", "Head Sit", "Multi Loop"},
+    "Loop TP",
+    function(value)
+        State.TeleportMode = value
+    end,
+    "TeleportMode"
+)
+
+TeleportSection:CreateToggle("Teleport Loop", false, function(state)
+    State.TeleportEnabled = state
+    if state then
+        startTeleportLoop()
+    else
+        stopTeleport()
+    end
+end, "TeleportLoop")
+
+TeleportSection:CreateSlider("Orbit Radius", 2, 12, 4, function(v)
+    State.OrbitRadius = v
+end, "OrbitRadius")
+
+TeleportSection:CreateSlider("Orbit Speed", 1, 12, 2, function(v)
+    State.OrbitSpeed = v
+end, "OrbitSpeed")
+
+TeleportSection:CreateSlider("Loop Speed", 0.03, 0.30, 0.12, function(v)
+    State.LoopSpeed = v
+end, "LoopSpeed")
+
+TeleportSection:CreateSlider("Head Sit Height", 1.0, 5.0, 2.3, function(v)
+    State.HeadSitHeight = v
+end, "HeadSitHeight")
+
+local PredictionSection = GameTab:CreateSection("Prediction")
+PredictionSection:CreateSlider("Base Prediction", 0.00, 0.60, 0.12, function(v)
+    State.PredictionBase = v
+end, "PredictionBase")
+
+PredictionSection:CreateSlider("Velocity Factor", 0.000, 0.060, 0.020, function(v)
+    State.PredictionVelocityFactor = v
+end, "PredictionVelocityFactor")
+
+PredictionSection:CreateSlider("Acceleration Factor", 0.000, 0.040, 0.010, function(v)
+    State.PredictionAccelerationFactor = v
+end, "PredictionAccelerationFactor")
+
+PredictionSection:CreateSlider("Look Factor", 0.0, 5.0, 1.5, function(v)
+    State.PredictionLookFactor = v
+end, "PredictionLookFactor")
+
+PredictionSection:CreateSlider("Air Bonus", 0.00, 0.40, 0.10, function(v)
+    State.PredictionAirBonus = v
+end, "PredictionAirBonus")
+
+PredictionSection:CreateSlider("Y Velocity Factor", 0.00, 0.40, 0.10, function(v)
+    State.PredictionYVelocityFactor = v
+end, "PredictionYVelocityFactor")
+
+PredictionSection:CreateSlider("Close Range Boost", 0.00, 0.40, 0.18, function(v)
+    State.CloseRangeBoost = v
+end, "CloseRangeBoost")
+
+PredictionSection:CreateSlider("Far Range Boost", 0.00, 0.30, 0.10, function(v)
+    State.FarRangeBoost = v
+end, "FarRangeBoost")
+
+PredictionSection:CreateSlider("Strafe Factor", 0.00, 1.00, 0.25, function(v)
+    State.StrafeFactor = v
+end, "StrafeFactor")
+
+PredictionSection:CreateSlider("Prediction Clamp", 0.10, 1.50, 0.95, function(v)
+    State.PredictionClamp = v
+end, "PredictionClamp")
+
+PredictionSection:CreateSlider("Target Height Offset", -3.0, 3.0, 0.0, function(v)
+    State.TargetHeightOffset = v
+end, "TargetHeightOffset")
+
+local UtilitySection = GameTab:CreateSection("Utility")
+UtilitySection:CreateToggle("Anti Seat", false, function(state)
+    State.AntiSeat = state
+    if state then
+        startAntiSeat()
+        Window:Notify("Anti Seat", "Enabled.", 2)
+    else
+        stopAntiSeat()
+        Window:Notify("Anti Seat", "Disabled.", 2)
+    end
+end, "AntiSeat")
+
+local NotifySection = GameTab:CreateSection("Notifications")
+NotifySection:CreateToggle("Join / Leave Notifications", false, function(state)
+    State.NotifyJoinLeave = state
+end, "NotifyJoinLeave")
+
+local function refreshInfo()
+    local model = getTargetByName(State.CurrentTargetName)
+    if not model then
+        InfoLabel:Set("Info: none")
+        ThumbImage.Image = ""
+        ThumbInfo.Text = "No thumbnail"
+        return
+    end
+
+    local status = getStatus(model)
+    local hp = getHP(model)
+    local dist = math.floor(getDistance(model) + 0.5)
+    local display = getDisplayName(model.Name)
+
+    InfoLabel:Set(
+        "Info: @" .. model.Name
+        .. " | Display: " .. display
+        .. " | Status: " .. status
+        .. " | HP: " .. tostring(hp)
+        .. " | Dist: " .. tostring(dist)
+    )
+
+    local plr = Players:FindFirstChild(model.Name)
+    local thumb = nil
+
+    if plr and plr ~= LocalPlayer then
+        local ok, image = pcall(function()
+            return Players:GetUserThumbnailAsync(
+                plr.UserId,
+                Enum.ThumbnailType.HeadShot,
+                Enum.ThumbnailSize.Size100x100
+            )
+        end)
+
+        if ok and image and image ~= "" then
+            thumb = image
+        end
+    else
+        thumb = getThumbnailForName(model.Name)
+    end
+
+    if thumb then
+        ThumbImage.Image = thumb
+        ThumbInfo.Text = model.Name .. " thumbnail"
+    else
+        ThumbImage.Image = ""
+        ThumbInfo.Text = "No valid Roblox thumbnail for this target"
+    end
+end
+
+RefreshTargetsConn = task.spawn(function()
+    while Window and Window.ScreenGui and Window.ScreenGui.Parent do
+        if State.AutoRefreshTargets then
+            refreshDropdownData()
+        end
+        refreshInfo()
+        task.wait(0.5)
+    end
+end)
+
+task.spawn(function()
+    while Window and Window.ScreenGui and Window.ScreenGui.Parent do
+        SelectedLabel:Set(selectedText())
+        BlacklistLabel:Set(blacklistText())
+        task.wait(0.15)
+    end
+end)
+
+local function onPlayerAdded(plr)
+    if State.NotifyJoinLeave then
+        notifyWithThumb("Player Joined", plr.Name .. " joined the game.", plr.Name, 3)
+    end
+
+    if State.Blacklisted[plr.Name] then
+        notifyWithThumb("Blacklist Alert", plr.Name .. " is in the game.", plr.Name, 4)
+    end
+
+    task.defer(function()
+        if State.AutoRefreshTargets then
+            refreshDropdownData()
+        end
+    end)
+end
+
+local function onPlayerRemoving(plr)
+    if State.NotifyJoinLeave then
+        notifyWithThumb("Player Left", plr.Name .. " left the game.", plr.Name, 3)
+    end
+
+    task.defer(function()
+        if State.AutoRefreshTargets then
+            refreshDropdownData()
+        end
+    end)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(onPlayerRemoving)
+
+Window:CreateSettingsTab()
+Window:Notify("Ready", "Game tab is directly above Settings.", 3)
