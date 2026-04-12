@@ -7823,7 +7823,12 @@ end
 end
 
 an.Tabs[av]=ax
+local itemValue = ax.Original or ax.Value or ax.Title
+setSelected(ax, table.find(selectedValues, itemValue) ~= nil)
 
+an.Tabs[av]=ax
+
+ar:Display()
 ar:Display()
 
 local function rebuildSelectedValues()
@@ -7886,11 +7891,36 @@ ar:Display()
 
 if aq=="Dropdown"then
 	aj.AddSignal(ax.UIElements.TabItem.MouseButton1Click,function()
-if aq=="Dropdown"then
-aj.AddSignal(ax.UIElements.TabItem.MouseButton1Click,function()
-if ax.Locked then
-return
-end
+		if ax.Locked then
+			return
+		end
+
+		local itemValue = ax.Original or ax.Value or ax.Title
+
+		if an.Multi then
+			setSelected(ax, not ax.Selected)
+			rebuildSelectedValues()
+			updateDisplayText()
+
+			if an.Callback then
+				an.Callback(selectedValues)
+			end
+		else
+			for _, other in ipairs(an.Tabs) do
+				setSelected(other, false)
+			end
+
+			setSelected(ax, true)
+			rebuildSelectedValues()
+			updateDisplayText()
+
+			if an.Callback then
+				an.Callback(itemValue)
+			end
+
+			ar:Close()
+		end
+	end)
 
 if an.Multi then
 if not ax.Selected then
