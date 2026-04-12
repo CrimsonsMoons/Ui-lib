@@ -1,3 +1,19 @@
+--[[
+     _      ___         ____  ______
+    | | /| / (_)__  ___/ / / / /  _/
+    | |/ |/ / / _ \/ _  / /_/ // /  
+    |__/|__/_/_//_/\_,_/\____/___/
+    
+    v1.6.64  |  2026-04-05  |  Roblox UI Library for scripts
+    
+    To view the source code, see the `src/` folder on the official GitHub repository.
+    
+    Author: Footagesus (Footages, .ftgs, oftgs)
+    Github: https://github.com/Footagesus/WindUI
+    Discord: https://discord.gg/ftgs-development-hub-1300692552005189632
+    License: MIT
+]]
+
 local a a={cache={}, load=function(b)if not a.cache[b]then a.cache[b]={c=a[b]()}end return a.cache[b].c end}do function a.a()local b=(cloneref or clonereference or function(b)return b end)
 
 local d=b(game:GetService"ReplicatedStorage":WaitForChild("GetIcons",99999):InvokeServer())
@@ -7521,6 +7537,35 @@ end
 
 local as
 
+local function rebuildSelectedValues()
+	if an.Multi then
+		an.Value={}
+		for _,tabObj in ipairs(an.Tabs)do
+			if tabObj.Selected then
+				table.insert(an.Value,tabObj.Original or tabObj.Value or tabObj.Title)
+			end
+		end
+	else
+		for _,tabObj in ipairs(an.Tabs)do
+			if tabObj.Selected then
+				an.Value=tabObj.Original or tabObj.Value or tabObj.Title
+				return
+			end
+		end
+		an.Value=nil
+	end
+end
+
+local function setSelected(tabObj,state)
+	tabObj.Selected=state
+	al(tabObj.UIElements.TabItem,0.1,{ImageTransparency=state and 0.95 or 1}):Play()
+	al(tabObj.UIElements.TabItem.Highlight,0.1,{ImageTransparency=state and 0.75 or 1}):Play()
+	al(tabObj.UIElements.TabItem.Frame.Title.TextLabel,0.1,{TextTransparency=state and 0 or (aq=="Dropdown"and 0.4 or 0.05)}):Play()
+	if tabObj.UIElements.TabIcon then
+		al(tabObj.UIElements.TabIcon.ImageLabel,0.1,{ImageTransparency=state and 0 or (aq=="Dropdown"and 0.2 or 0)}):Play()
+	end
+end
+
 function ar.Display(at)
 local au=an.Values
 local av=""
@@ -7823,156 +7868,39 @@ end
 end
 
 an.Tabs[av]=ax
-local itemValue = ax.Original or ax.Value or ax.Title
-setSelected(ax, table.find(selectedValues, itemValue) ~= nil)
-
-an.Tabs[av]=ax
-
-ar:Display()
-ar:Display()
-
-local function rebuildSelectedValues()
-	table.clear(selectedValues)
-	for _, tabObj in ipairs(an.Tabs) do
-		if tabObj.Selected then
-			table.insert(selectedValues, tabObj.Original or tabObj.Value or tabObj.Title)
-		end
-	end
-end
-
-local function updateDisplayText()
-	if not an.Display then
-		return
-	end
-
-	if an.Multi then
-		if #selectedValues == 0 then
-			an.Display("None")
-		elseif #selectedValues <= 2 then
-			local out = {}
-			for _, item in ipairs(selectedValues) do
-				table.insert(out, tostring(item))
-			end
-			an.Display(table.concat(out, ", "))
-		else
-			an.Display(tostring(#selectedValues) .. " selected")
-		end
-	else
-		an.Display(selectedValues[1] and tostring(selectedValues[1]) or "None")
-	end
-end
-
-local function setSelected(tabObj, state)
-	tabObj.Selected = state
-
-	if tabObj.UIElements and tabObj.UIElements.TabItem and tabObj.UIElements.TabItem:FindFirstChild("Highlight") then
-		tabObj.UIElements.TabItem.Highlight.ImageTransparency = state and 0.75 or 1
-	end
-
-	if tabObj.UIElements and tabObj.UIElements.TabItem and tabObj.UIElements.TabItem:FindFirstChild("Frame") then
-		local title = tabObj.UIElements.TabItem.Frame.Title.TextLabel
-		if title then
-			title.TextTransparency = state and 0 or 0.4
-		end
-	end
-
-	if tabObj.UIElements and tabObj.UIElements.TabIcon then
-		tabObj.UIElements.TabIcon.ImageLabel.ImageTransparency = state and 0 or 0.2
-	end
-
-	if tabObj.UIElements and tabObj.UIElements.TabItem then
-		tabObj.UIElements.TabItem.ImageTransparency = state and 0.95 or 1
-	end
-end
-
-an.Tabs[av]=ax
 
 ar:Display()
 
 if aq=="Dropdown"then
-	aj.AddSignal(ax.UIElements.TabItem.MouseButton1Click,function()
-		if ax.Locked then
-			return
-		end
-
-		local itemValue = ax.Original or ax.Value or ax.Title
-
-		if an.Multi then
-			setSelected(ax, not ax.Selected)
-			rebuildSelectedValues()
-			updateDisplayText()
-
-			if an.Callback then
-				an.Callback(selectedValues)
-			end
-		else
-			for _, other in ipairs(an.Tabs) do
-				setSelected(other, false)
-			end
-
-			setSelected(ax, true)
-			rebuildSelectedValues()
-			updateDisplayText()
-
-			if an.Callback then
-				an.Callback(itemValue)
-			end
-
-			ar:Close()
-		end
-	end)
-
-if an.Multi then
-if not ax.Selected then
-ax.Selected=true
-al(ax.UIElements.TabItem,0.1,{ImageTransparency=0.95}):Play()
-al(ax.UIElements.TabItem.Highlight,0.1,{ImageTransparency=0.75}):Play()
-al(ax.UIElements.TabItem.Frame.Title.TextLabel,0.1,{TextTransparency=0}):Play()
-if ax.UIElements.TabIcon then
-al(ax.UIElements.TabIcon.ImageLabel,0.1,{ImageTransparency=0}):Play()
-end
-table.insert(an.Value,ax.Original)
-else
-if not an.AllowNone and#an.Value==1 then
+aj.AddSignal(ax.UIElements.TabItem.MouseButton1Click,function()
+if ax.Locked then
 return
 end
-ax.Selected=false
-al(ax.UIElements.TabItem,0.1,{ImageTransparency=1}):Play()
-al(ax.UIElements.TabItem.Highlight,0.1,{ImageTransparency=1}):Play()
-al(ax.UIElements.TabItem.Frame.Title.TextLabel,0.1,{TextTransparency=0.4}):Play()
-if ax.UIElements.TabIcon then
-al(ax.UIElements.TabIcon.ImageLabel,0.1,{ImageTransparency=0.2}):Play()
-end
 
-for az,aA in next,an.Value do
-if typeof(aA)=="table"and(aA.Title==ax.Name)or(aA==ax.Name)then
-table.remove(an.Value,az)
-break
-end
-end
-end
+if an.Multi then
+	local selectedCount=0
+	for _,tabObj in ipairs(an.Tabs)do
+		if tabObj.Selected then
+			selectedCount=selectedCount+1
+		end
+	end
+	if ax.Selected and not an.AllowNone and selectedCount<=1 then
+		return
+	end
+	setSelected(ax,not ax.Selected)
+	rebuildSelectedValues()
 else
-for az,aA in next,an.Tabs do
-al(aA.UIElements.TabItem,0.1,{ImageTransparency=1}):Play()
-al(aA.UIElements.TabItem.Highlight,0.1,{ImageTransparency=1}):Play()
-al(
-aA.UIElements.TabItem.Frame.Title.TextLabel,
-0.1,
-{TextTransparency=0.4}
-):Play()
-if aA.UIElements.TabIcon then
-al(aA.UIElements.TabIcon.ImageLabel,0.1,{ImageTransparency=0.2}):Play()
-end
-aA.Selected=false
-end
-ax.Selected=true
-al(ax.UIElements.TabItem,0.1,{ImageTransparency=0.95}):Play()
-al(ax.UIElements.TabItem.Highlight,0.1,{ImageTransparency=0.75}):Play()
-al(ax.UIElements.TabItem.Frame.Title.TextLabel,0.1,{TextTransparency=0}):Play()
-if ax.UIElements.TabIcon then
-al(ax.UIElements.TabIcon.ImageLabel,0.1,{ImageTransparency=0}):Play()
-end
-an.Value=ax.Original
+	if ax.Selected and not an.AllowNone then
+		return
+	end
+	for _,other in ipairs(an.Tabs)do
+		if other~=ax and other.Selected then
+			setSelected(other,false)
+		end
+	end
+	setSelected(ax,true)
+	rebuildSelectedValues()
+	ar:Close()
 end
 Callback()
 end)
@@ -8022,17 +7950,41 @@ end
 
 ar:Refresh(an.Values)
 
-function ar.Select(at,au)
-if au then
-an.Value=au
-else
+function ar.Select(at,au,av)
 if an.Multi then
-an.Value={}
+	if au==nil then
+		for _,tabObj in ipairs(an.Tabs)do
+			setSelected(tabObj,false)
+		end
+		rebuildSelectedValues()
+		Callback()
+		return an.Value
+	end
+
+	for _,tabObj in ipairs(an.Tabs)do
+		local itemValue=tabObj.Original or tabObj.Value or tabObj.Title
+		if itemValue==au then
+			setSelected(tabObj,av~=false)
+			break
+		end
+	end
+	rebuildSelectedValues()
+	Callback()
+	return an.Value
 else
-an.Value=nil
-end
-end
-ar:Refresh(an.Values)
+	if au then
+		for _,tabObj in ipairs(an.Tabs)do
+			local itemValue=tabObj.Original or tabObj.Value or tabObj.Title
+			setSelected(tabObj,itemValue==au)
+		end
+	else
+		for _,tabObj in ipairs(an.Tabs)do
+			setSelected(tabObj,false)
+		end
+	end
+	rebuildSelectedValues()
+	Callback()
+	return an.Value
 end
 
 RecalculateListSize()
@@ -8183,18 +8135,6 @@ ao.Value={}
 end
 if ao.Values and typeof(ao.Value)=="number"then
 ao.Value=ao.Values[ao.Value]
-end
-local selectedValues = {}
-local selectedLookup = {}
-
-if ao.Multi and type(ao.Value) == "table" then
-	for _, v in ipairs(ao.Value) do
-		selectedLookup[v] = true
-		table.insert(selectedValues, v)
-	end
-elseif ao.Value ~= nil then
-	selectedLookup[ao.Value] = true
-	table.insert(selectedValues, ao.Value)
 end
 
 local ap=true
