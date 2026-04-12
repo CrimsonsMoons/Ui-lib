@@ -448,8 +448,8 @@ function Library:new(options)
 	tw(barFill,{Size=UDim2.new(1,0,1,0)},TweenInfo.new(options.loadingTime,Enum.EasingStyle.Quad))
 
 local vp   = workspace.CurrentCamera.ViewportSize
-local winW = MOBILE and math.min(vp.X-20,560) or 720
-local winH = 500
+local winW = MOBILE and math.min(vp.X-20,590) or 760
+local winH = 530
 	local WIN_MIN_W = 340
 	local WIN_MIN_H = 220
 	local WIN_MAX_W = 800
@@ -772,7 +772,7 @@ end)
 	topLine.BackgroundColor3=Library.Theme.Border; topLine.BorderSizePixel=0
 	topLine.AnchorPoint=Vector2.new(0,1); topLine.Size=UDim2.new(1,0,0,1); topLine.Position=UDim2.new(0,0,1,0)
 
-local navW=165
+local navW=175
 	local Nav=Instance.new("Frame",Main)
 	Nav.Name="Nav"; Nav.BorderSizePixel=0
 	Nav.BackgroundColor3=Library.Theme.Nav
@@ -1001,8 +1001,8 @@ local navW=165
 
 local Content=Instance.new("Frame",Main)
 Content.Name="Content"; Content.BackgroundTransparency=1; Content.BorderSizePixel=0
-Content.Position=UDim2.new(0,navW+10,0,46); Content.ClipsDescendants=true
-Content.Size=UDim2.new(1,-(navW+20),1,-56)
+Content.Position=UDim2.new(0,navW+12,0,48); Content.ClipsDescendants=true
+Content.Size=UDim2.new(1,-(navW+24),1,-60)
 	GUI._content=Content
 
 	-- Wire sidebar toggle button
@@ -1013,8 +1013,8 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		if navOpen then
 			-- Slide nav in
 			tw(Nav,     { Size     = UDim2.new(0, navW, 1, -34) }, TI_SLOW)
-			tw(Content, { Position = UDim2.new(0, navW+10, 0, 46),
-			              Size     = UDim2.new(1, -(navW+20), 1, -56) }, TI_SLOW)
+			tw(Content, { Position = UDim2.new(0, navW+12, 0, 48),
+			              Size     = UDim2.new(1, -(navW+24), 1, -60) }, TI_SLOW)
 			for _, b in ipairs(_sbLines) do tw(b, {BackgroundColor3 = Library.Theme.TextSecondary}) end
 		else
 			-- Slide nav out
@@ -1054,116 +1054,71 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 	-- ══════════════════════════════════════════════════════════════════════
 	function GUI.notify(title, text, duration, ntype)
 		duration = duration or 3
-		local maxNotifs = 5
+		-- Color the accent bar based on notification type
 		local accentCol = ntype == "success" and Color3.fromRGB(60,200,100)
 			or ntype == "warning" and Color3.fromRGB(230,180,0)
 			or ntype == "error"   and Color3.fromRGB(220,60,60)
 			or ntype == "info"    and Color3.fromRGB(80,160,255)
 			or Library.Theme.Accent
-		local body = tostring(text or "")
-		local titleText = tostring(title or "VenturaUI")
-		local roughLines = math.max(1, math.ceil(#body / 34))
-		local cardH = math.clamp(54 + (roughLines - 1) * 14, 56, 96)
-
-		if #_notifStack >= maxNotifs then
-			local oldest = _notifStack[#_notifStack]
-			if oldest and oldest.Parent then
-				table.remove(_notifStack, #_notifStack)
-				pcall(function() oldest:Destroy() end)
-			end
-		end
-
 		local card = Instance.new("Frame", SG)
 		card.Name             = "_Notif"
-		card.Size             = UDim2.new(0, NOTIF_W, 0, cardH)
+		card.Size             = UDim2.new(0, NOTIF_W, 0, NOTIF_H)
 		card.BackgroundColor3 = Library.Theme.Surface
 		card.BorderSizePixel  = 0
-		card.Position         = UDim2.new(1, NOTIF_RIGHT + NOTIF_W + 40, 1, -(NOTIF_BOTTOM))
+		card.Position = UDim2.new(1, NOTIF_RIGHT + NOTIF_W + 40, 1, -(NOTIF_BOTTOM))
 		card.AnchorPoint      = Vector2.new(0, 1)
 		card.ZIndex           = 600
-		corner(card, 8); stroke(card, Library.Theme.Border)
-
+		corner(card, 6); stroke(card, Library.Theme.Border)
 		local accent = Instance.new("Frame", card)
-		accent.Size             = UDim2.new(0, 4, 1, 0)
+		accent.Size             = UDim2.new(0, 3, 1, 0)
 		accent.BackgroundColor3 = accentCol
 		accent.BorderSizePixel  = 0
-		accent.ZIndex           = 601; corner(accent, 3)
-
-		local closeBtn = Instance.new("TextButton", card)
-		closeBtn.BackgroundTransparency = 1
-		closeBtn.BorderSizePixel = 0
-		closeBtn.AnchorPoint = Vector2.new(1,0)
-		closeBtn.Position = UDim2.new(1,-8,0,8)
-		closeBtn.Size = UDim2.new(0,16,0,16)
-		closeBtn.Text = "×"
-		closeBtn.TextSize = 15
-		closeBtn.FontFace = Font.new("rbxasset://fonts/families/Ubuntu.json", Enum.FontWeight.Bold)
-		closeBtn.TextColor3 = Library.Theme.TextDisabled
-		closeBtn.ZIndex = 603
-		closeBtn.AutoButtonColor = false
-
+		accent.ZIndex           = 601; corner(accent, 2)
 		local progBg = Instance.new("Frame", card)
 		progBg.Size             = UDim2.new(1, 0, 0, 2)
 		progBg.Position         = UDim2.new(0, 0, 1, -2)
 		progBg.BackgroundColor3 = Library.Theme.Border
-		progBg.BorderSizePixel  = 0
-		progBg.ZIndex           = 601
-
+		progBg.BorderSizePixel  = 0; progBg.ZIndex = 601
 		local progFill = Instance.new("Frame", progBg)
 		progFill.Size             = UDim2.new(1, 0, 1, 0)
 		progFill.BackgroundColor3 = accentCol
-		progFill.BorderSizePixel  = 0
-		progFill.ZIndex           = 602
-
-		local iconStr = ntype=="success" and "✅ " or ntype=="warning" and "⚠️ " or ntype=="error" and "❌ " or ntype=="info" and "ℹ️ " or ""
-		local tTitle = lbl(card, iconStr..titleText, 12, Library.Theme.TextPrimary, Font.new("rbxasset://fonts/families/Ubuntu.json", Enum.FontWeight.Bold))
-		tTitle.Size     = UDim2.new(1, -34, 0, 16)
-		tTitle.Position = UDim2.new(0, 12, 0, 8)
-		tTitle.ZIndex   = 601
-
-		local tText = lbl(card, body, 11, Library.Theme.TextSecondary)
-		tText.Size         = UDim2.new(1, -24, 0, cardH - 30)
-		tText.Position     = UDim2.new(0, 12, 0, 26)
-		tText.ZIndex       = 601
-		tText.TextWrapped  = true
-		tText.TextTruncate = Enum.TextTruncate.None
-		tText.TextYAlignment = Enum.TextYAlignment.Top
-
-		local closing = false
-		local function closeCard()
-			if closing or not card or not card.Parent then return end
-			closing = true
-			_removeCard(card)
-			tw(card, {
-				Position = UDim2.new(1, NOTIF_W + NOTIF_RIGHT + 40, 1, card.Position.Y.Offset),
-				BackgroundTransparency = 1
-			}, TI_FAST, function()
-				pcall(function() card:Destroy() end)
-			end)
-		end
-
+		progFill.BorderSizePixel  = 0; progFill.ZIndex = 602
+		local iconStr = ntype=="success" and "✅ " or ntype=="warning" and "⚠️ "
+			or ntype=="error" and "❌ " or ntype=="info" and "ℹ️ " or ""
+		local tTitle = lbl(card, iconStr..(title or "VenturaUI"), 12, Library.Theme.TextPrimary,
+			Font.new("rbxasset://fonts/families/Ubuntu.json", Enum.FontWeight.Bold))
+		tTitle.Size     = UDim2.new(1, -18, 0, 16)
+		tTitle.Position = UDim2.new(0, 12, 0, 8); tTitle.ZIndex = 601
+		local tText = lbl(card, text or "", 11, Library.Theme.TextSecondary)
+		tText.Size     = UDim2.new(1, -18, 0, 24)
+		tText.Position = UDim2.new(0, 12, 0, 26); tText.ZIndex = 601
+		tText.TextWrapped = true; tText.TextYAlignment = Enum.TextYAlignment.Top
 		table.insert(_notifStack, 1, card)
 		_notifReflow()
 		local targetPos = UDim2.new(1, -(NOTIF_W + NOTIF_RIGHT), 1, -(NOTIF_BOTTOM))
 		card.Position = UDim2.new(1, NOTIF_W + NOTIF_RIGHT + 40, 1, -(NOTIF_BOTTOM))
 		tw(card, { Position = targetPos }, TI_FAST)
-
 		local TI_DRAIN = TweenInfo.new(duration, Enum.EasingStyle.Linear)
 		tw(progFill, { Size = UDim2.new(0, 0, 1, 0) }, TI_DRAIN)
-
-		closeBtn.MouseEnter:Connect(function() tw(closeBtn,{TextColor3=Library.Theme.TextPrimary}) end)
-		closeBtn.MouseLeave:Connect(function() tw(closeBtn,{TextColor3=Library.Theme.TextDisabled}) end)
-		closeBtn.MouseButton1Click:Connect(closeCard)
 		card.InputBegan:Connect(function(inp)
 			if inp.UserInputType == Enum.UserInputType.MouseButton1 then
-				closeCard()
+				_removeCard(card)
+				tw(card, { Position = UDim2.new(1, NOTIF_W + NOTIF_RIGHT + 40, 1, -(NOTIF_BOTTOM)),
+					BackgroundTransparency = 1 }, TI_FAST, function()
+					pcall(function() card:Destroy() end)
+				end)
 			end
 		end)
-
-		task.delay(duration, closeCard)
+		task.delay(duration, function()
+			if not card or not card.Parent then return end
+			_removeCard(card)
+			tw(card, { Position = UDim2.new(1, NOTIF_W + NOTIF_RIGHT + 40, 1, card.Position.Y.Offset),
+				BackgroundTransparency = 1 }, TI_FAST, function()
+				pcall(function() card:Destroy() end)
+			end)
+		end)
 	end
 
-	-- ═
 	-- ══════════════════════════════════════════════════════════════════════
 	-- WINDOW CONTROLS — Minimize, Destroy, Title, SelectTab
 	-- ══════════════════════════════════════════════════════════════════════
@@ -1211,20 +1166,9 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 
 	function GUI:SetTitle(text) titleLabel.Text = tostring(text or "") end
 	function GUI:SetAccent(color)
-		if typeof(color) ~= "Color3" then return end
+		-- Change accent color at runtime and update all accent elements
 		Library.Theme.Accent = color
 		accentLine.BackgroundColor3 = color
-		pcall(function() if _ttFrame then _ttFrame:FindFirstChildOfClass("UIStroke").Color = color end end)
-		for _, tab in ipairs(GUI._tabs) do
-			if tab._indicator then tab._indicator.BackgroundColor3 = color end
-			if tab.Active and tab._navBtn then
-				tw(tab._navBtn,{BackgroundColor3=Color3.fromRGB(
-					math.clamp(color.R*255*0.18 + Library.Theme.Surface.R*255*0.82,0,255),
-					math.clamp(color.G*255*0.18 + Library.Theme.Surface.G*255*0.82,0,255),
-					math.clamp(color.B*255*0.18 + Library.Theme.Surface.B*255*0.82,0,255)
-				)})
-			end
-		end
 		GUI:SaveConfig()
 	end
 	function GUI:GetVersion() return Library.Version end
@@ -1401,7 +1345,7 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 
 		Tab._navBtn=Instance.new("Frame",BtnHolder)
 		Tab._navBtn.Name=opts.name.."_Btn"; Tab._navBtn.BorderSizePixel=0
-		Tab._navBtn.BackgroundColor3=isFirst and Color3.fromRGB(36,36,42) or Library.Theme.Border
+		Tab._navBtn.BackgroundColor3=Library.Theme.Border
 		Tab._navBtn.BackgroundTransparency=isFirst and 0.4 or 1
 		Tab._navBtn.Size=UDim2.new(1,0,0,34)
 		Tab._navBtn.LayoutOrder=_nextNavOrder()
@@ -1418,7 +1362,7 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		local indicator=Instance.new("Frame",Tab._navBtn)
 		indicator.BackgroundColor3=Library.Theme.Accent; indicator.BorderSizePixel=0
 		indicator.AnchorPoint=Vector2.new(0,0.5)
-		indicator.Size=UDim2.new(0,isFirst and 3 or 0,0.68,0)
+		indicator.Size=UDim2.new(0,isFirst and 2 or 0,0.65,0)
 		indicator.Position=UDim2.new(0,0,0.5,0); indicator.ZIndex=1; corner(indicator,2)
 		Tab._indicator=indicator
 
@@ -1502,14 +1446,14 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 			if Tab.Active or Tab._disabled then return end
 			if GUI.CurrentTab then GUI.CurrentTab:Deactivate() end
 			Tab.Active=true; Tab._scroll.Position=UDim2.new(0,0,0,0); GUI.CurrentTab=Tab
-			tw(Tab._navBtn,{BackgroundTransparency=0.2})
+			tw(Tab._navBtn,{BackgroundTransparency=0.4})
 			tw(navText,{TextColor3=Library.Theme.TextPrimary})
 			if Tab._navIconKind == "text" then
 				tw(navIcon,{TextColor3=Library.Theme.TextPrimary})
 			else
 				tw(navIcon,{ImageColor3=Library.Theme.TextPrimary})
 			end
-			tw(Tab._indicator,{Size=UDim2.new(0,3,0.68,0)})
+			tw(Tab._indicator,{Size=UDim2.new(0,2,0.65,0)})
 		end
 		function Tab:Deactivate()
 			if not Tab.Active then return end
@@ -1521,7 +1465,7 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 			else
 				tw(navIcon,{ImageColor3=Library.Theme.TextSecondary})
 			end
-			tw(Tab._indicator,{Size=UDim2.new(0,0,0.68,0)})
+			tw(Tab._indicator,{Size=UDim2.new(0,0,0.65,0)})
 		end
 		function Tab:Disable()
 			Tab._disabled=true; navClickBtn.Active=false
@@ -1546,131 +1490,37 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		local function base(name,h)
 			local f=Instance.new("Frame",Tab._scroll)
 			f.Name=name; f.BorderSizePixel=0; f.BackgroundColor3=Library.Theme.Surface
-			f.Size=UDim2.new(1,0,0,h or 42); corner(f,7); stroke(f,Library.Theme.Border)
-			return f
+			f.Size=UDim2.new(1,0,0,h or 32); corner(f); stroke(f,Library.Theme.Border); return f
 		end
-
-		local _currentSection = nil
-		local _sectionConn = Tab._scroll.ChildAdded:Connect(function(child)
-			if _currentSection and child:IsA("GuiObject") and child.Parent == Tab._scroll and not child:GetAttribute("VenturaSectionHeader") then
-				table.insert(_currentSection._items, child)
-				if _currentSection.Collapsed then
-					child.Visible = false
-				end
-			end
-		end)
-		Tab._scroll.AncestryChanged:Connect(function()
-			if not Tab._scroll:IsDescendantOf(game) and _sectionConn then
-				_sectionConn:Disconnect()
-			end
-		end)
 
 		-- ── COMPONENTS ─────────────────────────────────────────────────────────
 		-- ──────────────────────────────────────────────────────────────────
 		-- COMPONENTS
 		-- ──────────────────────────────────────────────────────────────────
 		function Tab:Section(opts)
-			opts=validate({name="Section",defaultOpen=true},opts)
+			opts=validate({name="Section"},opts)
 			local f=Instance.new("Frame",Tab._scroll)
-			f.Name="Section"
-			f.BackgroundTransparency=1
-			f.BorderSizePixel=0
-			f.Size=UDim2.new(1,0,0,30)
-			f:SetAttribute("VenturaSectionHeader", true)
-
+			f.Name="Section"; f.BackgroundTransparency=1; f.BorderSizePixel=0; f.Size=UDim2.new(1,0,0,24)
 			local line=Instance.new("Frame",f)
-			line.BackgroundColor3=Library.Theme.Border
-			line.BorderSizePixel=0
-			line.AnchorPoint=Vector2.new(0,0.5)
-			line.Size=UDim2.new(1,0,0,1)
-			line.Position=UDim2.new(0,0,0.5,0)
-
-			local hit=Instance.new("TextButton",f)
-			hit.BackgroundTransparency=1
-			hit.BorderSizePixel=0
-			hit.Size=UDim2.new(1,0,1,0)
-			hit.Text=""
-			hit.AutoButtonColor=false
-			hit.ZIndex=3
-
-			local sLbl=lbl(f,opts.name:upper(),12,Library.Theme.TextDisabled,
+			line.BackgroundColor3=Library.Theme.Border; line.BorderSizePixel=0
+			line.AnchorPoint=Vector2.new(0,0.5); line.Size=UDim2.new(1,0,0,1); line.Position=UDim2.new(0,0,0.5,0)
+			local sLbl=lbl(f,opts.name:upper(),10,Library.Theme.TextDisabled,
 				Font.new("rbxasset://fonts/families/Ubuntu.json",Enum.FontWeight.Bold))
-			sLbl.BackgroundColor3=Library.Theme.Background
-			sLbl.BackgroundTransparency=0
-			sLbl.Size=UDim2.new(0,#opts.name*8+18,1,0)
-			sLbl.ZIndex=2
-			sLbl.TextXAlignment=Enum.TextXAlignment.Center
-
-			local arrow=Instance.new("TextLabel",f)
-			arrow.BackgroundTransparency=1
-			arrow.BorderSizePixel=0
-			arrow.AnchorPoint=Vector2.new(1,0.5)
-			arrow.Position=UDim2.new(1,0,0.5,0)
-			arrow.Size=UDim2.new(0,16,0,16)
-			arrow.Text=opts.defaultOpen and "−" or "+"
-			arrow.TextSize=14
-			arrow.FontFace=Font.new("rbxasset://fonts/families/RobotoMono.json",Enum.FontWeight.Bold)
-			arrow.TextColor3=Library.Theme.TextDisabled
-			arrow.TextXAlignment=Enum.TextXAlignment.Center
-			arrow.ZIndex=2
-
-			local Section = {Frame=f, Collapsed=not opts.defaultOpen, _items={}}
-			_currentSection = Section
-
-			local function apply()
-				arrow.Text = Section.Collapsed and "+" or "−"
-				for _, item in ipairs(Section._items) do
-					if item and item.Parent == Tab._scroll then
-						item.Visible = not Section.Collapsed
-					end
-				end
-			end
-
-			function Section:Collapse()
-				Section.Collapsed = true
-				apply()
-			end
-			function Section:Expand()
-				Section.Collapsed = false
-				apply()
-			end
-			function Section:Toggle()
-				Section.Collapsed = not Section.Collapsed
-				apply()
-			end
-
-			hit.MouseEnter:Connect(function()
-				tw(sLbl,{TextColor3=Library.Theme.TextSecondary})
-				tw(arrow,{TextColor3=Library.Theme.TextSecondary})
-			end)
-			hit.MouseLeave:Connect(function()
-				tw(sLbl,{TextColor3=Library.Theme.TextDisabled})
-				tw(arrow,{TextColor3=Library.Theme.TextDisabled})
-			end)
-			hit.MouseButton1Click:Connect(function()
-				Section:Toggle()
-			end)
-
-			apply()
-			return Section
+			sLbl.BackgroundColor3=Library.Theme.Background; sLbl.BackgroundTransparency=0
+			sLbl.Size=UDim2.new(0,#opts.name*7+10,1,0); sLbl.ZIndex=2; sLbl.TextXAlignment=Enum.TextXAlignment.Center
+			return f
 		end
 
-		function Tab:Separator		function Tab:Separator()
+		function Tab:Separator()
 			local f=Instance.new("Frame",Tab._scroll)
 			f.BackgroundColor3=Library.Theme.Border; f.BorderSizePixel=0; f.Size=UDim2.new(1,0,0,1); return f
 		end
 
 		function Tab:Label(opts)
 			opts=validate({text="Label",color=nil},opts)
-			local Label={}
 			local f=Instance.new("Frame",Tab._scroll)
-			f.BackgroundTransparency=1; f.BorderSizePixel=0; f.Size=UDim2.new(1,0,0,30)
-			local l2=lbl(f,opts.text,14,opts.color or Library.Theme.TextSecondary)
-			pad(l2,0,0,0,6)
-			Label.frame=f
-			function Label:SetText(v) l2.Text=tostring(v or "") end
-			function Label:SetColor(v) if typeof(v)=="Color3" then l2.TextColor3=v end end
-			return Label
+			f.BackgroundTransparency=1; f.BorderSizePixel=0; f.Size=UDim2.new(1,0,0,26)
+			local l2=lbl(f,opts.text,12,opts.color or Library.Theme.TextSecondary); pad(l2,0,0,0,4); return f
 		end
 
 		function Tab:Paragraph(opts)
@@ -1813,33 +1663,31 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		-- ── INTERACTIVE ────────────────────────────────────────────────────────
 		function Tab:Button(opts)
 			opts=validate({name="Button",description="",tooltip="",badge=nil,badgeColor=nil,callback=function()end},opts)
-			local h=opts.description~="" and 52 or 42
-			local Btn={}
-			Btn.frame=base("Button",h); pad(Btn.frame,0,10,0,12)
+			local h=opts.description~="" and 48 or 38
+			local Btn={}; Btn.frame=base("Button",h); pad(Btn.frame,0,8,0,10)
 			local bStroke=Btn.frame:FindFirstChildOfClass("UIStroke")
-			local nl=lbl(Btn.frame,opts.name,14,Library.Theme.TextPrimary)
-			nl.Size=UDim2.new(1,-30,0,18); nl.Position=UDim2.new(0,0,0,h==52 and 8 or 12)
-			local dl
+			local nl=lbl(Btn.frame,opts.name,13,Library.Theme.TextPrimary)
+			nl.Size=UDim2.new(1,-26,0,18); nl.Position=UDim2.new(0,0,0,h==48 and 7 or 10)
 			if opts.description~="" then
-				dl=lbl(Btn.frame,opts.description,12,Library.Theme.TextSecondary)
-				dl.Size=UDim2.new(1,-30,0,14); dl.Position=UDim2.new(0,0,0,29)
+				local dl=lbl(Btn.frame,opts.description,11,Library.Theme.TextSecondary)
+				dl.Size=UDim2.new(1,-26,0,14); dl.Position=UDim2.new(0,0,0,26)
 			end
 			if opts.badge then
 				local bpf=Instance.new("Frame",Btn.frame)
 				bpf.BackgroundColor3=opts.badgeColor or Color3.fromRGB(255,80,80)
 				bpf.BorderSizePixel=0; bpf.AnchorPoint=Vector2.new(1,0.5)
-				bpf.Size=UDim2.new(0,math.max(#opts.badge*6+10,26),0,16)
-				bpf.Position=UDim2.new(1,-18,0.5,0); corner(bpf,4)
+				bpf.Size=UDim2.new(0,math.max(#opts.badge*6+8,24),0,14)
+				bpf.Position=UDim2.new(1,-16,0.5,0); corner(bpf,3)
 				local bpl=Instance.new("TextLabel",bpf)
 				bpl.BackgroundTransparency=1; bpl.Size=UDim2.new(1,0,1,0)
-				bpl.TextSize=10; bpl.TextXAlignment=Enum.TextXAlignment.Center
+				bpl.TextSize=9; bpl.TextXAlignment=Enum.TextXAlignment.Center
 				bpl.FontFace=Font.new("rbxasset://fonts/families/Ubuntu.json",Enum.FontWeight.Bold)
 				bpl.TextColor3=Color3.fromRGB(255,255,255); bpl.Text=opts.badge
 			end
 			local arr=Instance.new("ImageLabel",Btn.frame)
 			arr.BackgroundTransparency=1; arr.AnchorPoint=Vector2.new(1,0.5)
 			arr.Image="rbxassetid://12974428978"; arr.ImageColor3=Library.Theme.TextDisabled
-			arr.Size=UDim2.new(0,12,0,12); arr.Position=UDim2.new(1,0,0.5,0); arr.Rotation=-90
+			arr.Size=UDim2.new(0,11,0,11); arr.Position=UDim2.new(1,0,0.5,0); arr.Rotation=-90
 			addTooltip(Btn.frame,opts.tooltip)
 			Btn.frame.InputBegan:Connect(function(i)
 				if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then opts.callback() end
@@ -1850,37 +1698,35 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 			Btn.frame.MouseLeave:Connect(function()
 				tw(Btn.frame,{BackgroundColor3=Library.Theme.Surface}); tw(bStroke,{Color=Library.Theme.Border})
 			end)
-			function Btn:SetText(v) nl.Text=tostring(v or "") end
-			function Btn:SetDescription(v) if dl then dl.Text=tostring(v or "") end end
 			return Btn
 		end
 
-		function Tab:Toggle		function Tab:Toggle(opts)
+		function Tab:Toggle(opts)
 			opts=validate({name="Toggle",description="",tooltip="",default=false,callback=function()end},opts)
-			local h=opts.description~="" and 52 or 42
+			local h=opts.description~="" and 48 or 38
 			local Toggle={Value=opts.default}
-			Toggle.frame=base("Toggle",h); pad(Toggle.frame,0,10,0,12)
-			local nl=lbl(Toggle.frame,opts.name,14,Library.Theme.TextPrimary)
-			nl.Size=UDim2.new(1,-44,0,18); nl.Position=UDim2.new(0,0,0,h==52 and 8 or 12)
+			Toggle.frame=base("Toggle",h); pad(Toggle.frame,0,8,0,10)
+			local nl=lbl(Toggle.frame,opts.name,13,Library.Theme.TextPrimary)
+			nl.Size=UDim2.new(1,-38,0,18); nl.Position=UDim2.new(0,0,0,h==48 and 7 or 10)
 			if opts.description~="" then
-				local dl=lbl(Toggle.frame,opts.description,12,Library.Theme.TextSecondary)
-				dl.Size=UDim2.new(1,-44,0,14); dl.Position=UDim2.new(0,0,0,30)
+				local dl=lbl(Toggle.frame,opts.description,11,Library.Theme.TextSecondary)
+				dl.Size=UDim2.new(1,-38,0,14); dl.Position=UDim2.new(0,0,0,28)
 			end
 			local pill=Instance.new("Frame",Toggle.frame)
 			pill.BackgroundColor3=opts.default and Library.Theme.Accent or Color3.fromRGB(48,48,48)
 			pill.BorderSizePixel=0; pill.AnchorPoint=Vector2.new(1,0.5)
-			pill.Size=UDim2.new(0,34,0,18); pill.Position=UDim2.new(1,0,0.5,0); corner(pill,9)
+			pill.Size=UDim2.new(0,30,0,16); pill.Position=UDim2.new(1,0,0.5,0); corner(pill,8)
 			local knob=Instance.new("Frame",pill)
 			knob.BackgroundColor3=Color3.fromRGB(215,215,215); knob.BorderSizePixel=0
-			knob.AnchorPoint=Vector2.new(0,0.5); knob.Size=UDim2.new(0,14,0,14)
-			knob.Position=opts.default and UDim2.new(1,-16,0.5,0) or UDim2.new(0,2,0.5,0)
-			corner(knob,7); addTooltip(Toggle.frame,opts.tooltip)
+			knob.AnchorPoint=Vector2.new(0,0.5); knob.Size=UDim2.new(0,12,0,12)
+			knob.Position=opts.default and UDim2.new(1,-14,0.5,0) or UDim2.new(0,2,0.5,0)
+			corner(knob,6); addTooltip(Toggle.frame,opts.tooltip)
 			Toggle.frame.InputBegan:Connect(function(i)
 				if i.UserInputType==Enum.UserInputType.MouseButton1
 					or i.UserInputType==Enum.UserInputType.Touch then
 					Toggle.Value=not Toggle.Value
 					tw(pill,{BackgroundColor3=Toggle.Value and Library.Theme.Accent or Color3.fromRGB(48,48,48)})
-					tw(knob,{Position=Toggle.Value and UDim2.new(1,-16,0.5,0) or UDim2.new(0,2,0.5,0)})
+					tw(knob,{Position=Toggle.Value and UDim2.new(1,-14,0.5,0) or UDim2.new(0,2,0.5,0)})
 					opts.callback(Toggle.Value)
 				end
 			end)
@@ -1890,28 +1736,27 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 				tw(knob,{Position=v and UDim2.new(1,-14,0.5,0) or UDim2.new(0,2,0.5,0)})
 				if not silent then opts.callback(v) end
 			end
-			function Toggle:SetValue(v, silent) Toggle:Set(v, silent) end
 			return Toggle
 		end
 
 		function Tab:Slider(opts)
 			opts=validate({name="Slider",tooltip="",min=0,max=100,default=50,suffix="",callback=function()end},opts)
 			local Slider={Value=opts.default,Dragging=false}
-			Slider.frame=base("Slider",60); pad(Slider.frame,9,12,10,12)
-			local nl=lbl(Slider.frame,opts.name,14,Library.Theme.TextPrimary); nl.Size=UDim2.new(1,-50,0,18)
-			local vl=lbl(Slider.frame,tostring(opts.default)..opts.suffix,13,Library.Theme.TextSecondary,nil,Enum.TextXAlignment.Right)
-			vl.AnchorPoint=Vector2.new(1,0); vl.Size=UDim2.new(0,48,0,18); vl.Position=UDim2.new(1,0,0,0)
+			Slider.frame=base("Slider",56); pad(Slider.frame,8,10,9,10)
+			local nl=lbl(Slider.frame,opts.name,13,Library.Theme.TextPrimary); nl.Size=UDim2.new(1,-45,0,18)
+			local vl=lbl(Slider.frame,tostring(opts.default)..opts.suffix,12,Library.Theme.TextSecondary,nil,Enum.TextXAlignment.Right)
+			vl.AnchorPoint=Vector2.new(1,0); vl.Size=UDim2.new(0,42,0,18); vl.Position=UDim2.new(1,0,0,0)
 			local track=Instance.new("Frame",Slider.frame)
 			track.BackgroundColor3=Color3.fromRGB(13,13,13); track.BorderSizePixel=0
-			track.AnchorPoint=Vector2.new(0,1); track.Size=UDim2.new(1,0,0,6)
+			track.AnchorPoint=Vector2.new(0,1); track.Size=UDim2.new(1,0,0,5)
 			track.Position=UDim2.new(0,0,1,0); corner(track,3); stroke(track,Color3.fromRGB(42,42,42))
 			local fill=Instance.new("Frame",track)
 			fill.BackgroundColor3=Library.Theme.Accent; fill.BorderSizePixel=0
 			fill.Size=UDim2.new((opts.default-opts.min)/(opts.max-opts.min),0,1,0); corner(fill,3)
 			local thumb=Instance.new("Frame",track)
 			thumb.BackgroundColor3=Color3.fromRGB(225,225,225); thumb.BorderSizePixel=0
-			thumb.AnchorPoint=Vector2.new(0.5,0.5); thumb.Size=UDim2.new(0,14,0,14)
-			thumb.Position=UDim2.new((opts.default-opts.min)/(opts.max-opts.min),0,0.5,0); corner(thumb,7)
+			thumb.AnchorPoint=Vector2.new(0.5,0.5); thumb.Size=UDim2.new(0,10,0,10)
+			thumb.Position=UDim2.new((opts.default-opts.min)/(opts.max-opts.min),0,0.5,0); corner(thumb,5)
 			addTooltip(Slider.frame,opts.tooltip)
 			local function upd(x)
 				local range = opts.max - opts.min
@@ -1942,30 +1787,29 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 				thumb.Position=UDim2.new(a,0,0.5,0); vl.Text=tostring(v)..opts.suffix
 				if not silent then opts.callback(v) end
 			end
-			function Slider:SetValue(v, silent) Slider:Set(v, silent) end
 			return Slider
 		end
 
 		function Tab:Dropdown(opts)
 			opts=validate({name="Dropdown",tooltip="",items={},default=nil,multi=false,callback=function()end},opts)
 			local DD={Open=false,Selected=opts.default,Multi={}}
-			DD.frame=base("Dropdown",44); DD.frame.ClipsDescendants=true
+			DD.frame=base("Dropdown",38); DD.frame.ClipsDescendants=true
 			DD.frame.BackgroundTransparency=1; DD.frame:FindFirstChildOfClass("UIStroke"):Destroy()
 			local header=Instance.new("TextButton",DD.frame)
 			header.Name="DDHeader"; header.AutoButtonColor=false
 			header.BackgroundColor3=Library.Theme.Surface; header.BorderSizePixel=0
-			header.Size=UDim2.new(1,0,0,44); header.Position=UDim2.new(0,0,0,0)
+			header.Size=UDim2.new(1,0,0,38); header.Position=UDim2.new(0,0,0,0)
 			header.Text=""; header.ZIndex=2; corner(header,5); stroke(header,Library.Theme.Border)
-			local selLbl=lbl(header,opts.default or opts.name,14,Library.Theme.TextPrimary)
+			local selLbl=lbl(header,opts.default or opts.name,13,Library.Theme.TextPrimary)
 			selLbl.Size=UDim2.new(1,-20,1,0); selLbl.ZIndex=3; pad(selLbl,0,0,0,10)
 			local arrowImg=Instance.new("ImageLabel",header)
 			arrowImg.BackgroundTransparency=1; arrowImg.AnchorPoint=Vector2.new(1,0.5)
 			arrowImg.Image="rbxassetid://12974428978"; arrowImg.ImageColor3=Library.Theme.TextSecondary
-			arrowImg.Size=UDim2.new(0,14,0,14); arrowImg.Position=UDim2.new(1,-10,0.5,0); arrowImg.ZIndex=3
+			arrowImg.Size=UDim2.new(0,13,0,13); arrowImg.Position=UDim2.new(1,-8,0.5,0); arrowImg.ZIndex=3
 			addTooltip(header,opts.tooltip)
 			local optHolder=Instance.new("Frame",DD.frame)
 			optHolder.BackgroundTransparency=1; optHolder.BorderSizePixel=0
-			optHolder.Size=UDim2.new(1,0,0,0); optHolder.Position=UDim2.new(0,0,0,40)
+			optHolder.Size=UDim2.new(1,0,0,0); optHolder.Position=UDim2.new(0,0,0,34)
 			optHolder.Visible=false; optHolder.ZIndex=4
 			local ol=Instance.new("UIListLayout",optHolder)
 			ol.Padding=UDim.new(0,3); ol.SortOrder=Enum.SortOrder.LayoutOrder
@@ -1977,10 +1821,10 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 					local opt=Instance.new("TextButton",optHolder)
 					opt.AutoButtonColor=false; opt.BorderSizePixel=0
 					opt.BackgroundColor3=isSel and Color3.fromRGB(52,52,52) or Color3.fromRGB(32,32,32)
-					opt.TextSize=13; opt.TextXAlignment=Enum.TextXAlignment.Left
+					opt.TextSize=12; opt.TextXAlignment=Enum.TextXAlignment.Left
 					opt.FontFace=Font.new("rbxasset://fonts/families/Ubuntu.json")
 					opt.TextColor3=isSel and Library.Theme.TextPrimary or Library.Theme.TextSecondary
-					opt.Size=UDim2.new(1,0,0,30); opt.Text=item; opt.ZIndex=5
+					opt.Size=UDim2.new(1,0,0,27); opt.Text=item; opt.ZIndex=5
 					corner(opt,3); stroke(opt,isSel and Library.Theme.BorderHover or Library.Theme.Border); pad(opt,0,0,0,8)
 					opt.MouseEnter:Connect(function()
 						local nowSel=(opts.multi and DD.Multi[item]) or (not opts.multi and DD.Selected==item)
@@ -2017,7 +1861,6 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 				opts.items=newItems; DD.Selected=nil; selLbl.Text=opts.name
 				if DD.Open then refresh() end
 			end
-			function DD:SetValue(v, silent) DD:Set(v, silent) end
 			return DD
 		end
 
@@ -2424,6 +2267,7 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 
 	-- ══════════════════════════════════════════════════════════════════════
 	-- AI Assistant tab (FIXED: now properly inside Library:new)
+	-- ══════════════════════════════════════════════════════════════════════
 	-- ══════════════════════════════════════════════════════════════════════
 	-- AI ASSISTANT TAB (optional — aiEnabled=true)
 	-- ══════════════════════════════════════════════════════════════════════
