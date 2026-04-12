@@ -1013,14 +1013,14 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		if navOpen then
 			-- Slide nav in
 			tw(Nav,     { Size     = UDim2.new(0, navW, 1, -34) }, TI_SLOW)
-			tw(Content, { Position = UDim2.new(0, navW+6, 0, 42),
-			              Size     = UDim2.new(1, -(navW+12), 1, -48) }, TI_SLOW)
+			tw(Content, { Position = UDim2.new(0, navW+10, 0, 46),
+			              Size     = UDim2.new(1, -(navW+20), 1, -56) }, TI_SLOW)
 			for _, b in ipairs(_sbLines) do tw(b, {BackgroundColor3 = Library.Theme.TextSecondary}) end
 		else
 			-- Slide nav out
 			tw(Nav,     { Size     = UDim2.new(0, 0, 1, -34) }, TI_SLOW)
-			tw(Content, { Position = UDim2.new(0, 6, 0, 42),
-			              Size     = UDim2.new(1, -12, 1, -48) }, TI_SLOW)
+			tw(Content, { Position = UDim2.new(0, 10, 0, 46),
+			              Size     = UDim2.new(1, -20, 1, -56) }, TI_SLOW)
 			for _, b in ipairs(_sbLines) do tw(b, {BackgroundColor3 = Library.Theme.Accent}) end
 		end
 	end)
@@ -1338,9 +1338,9 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		Tab._scroll.Visible=true
 		pad(Tab._scroll,4,4,6,2)
 		local sL=Instance.new("UIListLayout",Tab._scroll)
-		sL.Padding=UDim.new(0,7); sL.SortOrder=Enum.SortOrder.LayoutOrder
+		sL.Padding=UDim.new(0,9); sL.SortOrder=Enum.SortOrder.LayoutOrder
 		sL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-			Tab._scroll.CanvasSize=UDim2.new(0,0,0,sL.AbsoluteContentSize.Y+10)
+			Tab._scroll.CanvasSize=UDim2.new(0,0,0,sL.AbsoluteContentSize.Y+14)
 		end)
 
 		Tab._navBtn=Instance.new("Frame",BtnHolder)
@@ -1403,7 +1403,7 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		navText.TextColor3=isFirst and Library.Theme.TextPrimary or Library.Theme.TextSecondary
 		navText.Text=opts.name; navText.TextTruncate=Enum.TextTruncate.AtEnd
 		navText.TextXAlignment=Enum.TextXAlignment.Left
-		navText.Size=UDim2.new(1,-30,1,0)); navText.Position=UDim2.new(0,30,0,0); navText.ZIndex=2
+		navText.Size=UDim2.new(1,-40,1,0); navText.Position=UDim2.new(0,34,0,0); navText.ZIndex=2
 		Tab._navText=navText
 
 		if opts.badge then
