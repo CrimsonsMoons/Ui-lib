@@ -772,7 +772,7 @@ end)
 	topLine.BackgroundColor3=Library.Theme.Border; topLine.BorderSizePixel=0
 	topLine.AnchorPoint=Vector2.new(0,1); topLine.Size=UDim2.new(1,0,0,1); topLine.Position=UDim2.new(0,0,1,0)
 
-local navW=145
+local navW=165
 	local Nav=Instance.new("Frame",Main)
 	Nav.Name="Nav"; Nav.BorderSizePixel=0
 	Nav.BackgroundColor3=Library.Theme.Nav
@@ -999,10 +999,10 @@ local navW=145
 	local unLbl=lbl(usStack,"@"..LP.Name,10,Library.Theme.TextSecondary)
 	unLbl.Size=UDim2.new(1,0,0,15); unLbl.LayoutOrder=2
 
-	local Content=Instance.new("Frame",Main)
-	Content.Name="Content"; Content.BackgroundTransparency=1; Content.BorderSizePixel=0
-	Content.Position=UDim2.new(0,navW+6,0,42); Content.ClipsDescendants=true
-	Content.Size=UDim2.new(1,-(navW+12),1,-48)
+local Content=Instance.new("Frame",Main)
+Content.Name="Content"; Content.BackgroundTransparency=1; Content.BorderSizePixel=0
+Content.Position=UDim2.new(0,navW+10,0,46); Content.ClipsDescendants=true
+Content.Size=UDim2.new(1,-(navW+20),1,-56)
 	GUI._content=Content
 
 	-- Wire sidebar toggle button
@@ -1347,7 +1347,7 @@ local navW=145
 		Tab._navBtn.Name=opts.name.."_Btn"; Tab._navBtn.BorderSizePixel=0
 		Tab._navBtn.BackgroundColor3=Library.Theme.Border
 		Tab._navBtn.BackgroundTransparency=isFirst and 0.4 or 1
-		Tab._navBtn.Size=UDim2.new(1,0,0,26)
+		Tab._navBtn.Size=UDim2.new(1,0,0,34)
 		Tab._navBtn.LayoutOrder=_nextNavOrder()
 		corner(Tab._navBtn,4)
 
@@ -1374,11 +1374,11 @@ local navW=145
 			navIcon.BackgroundTransparency = 1
 			navIcon.BorderSizePixel = 0
 			navIcon.AnchorPoint = Vector2.new(0, 0.5)
-			navIcon.Size = UDim2.new(0, 16, 0, 16)
-			navIcon.Position = UDim2.new(0, 4, 0.5, 0)
+			navIcon.Size = UDim2.new(0, 20, 0, 20)
+			navIcon.Position = UDim2.new(0, 6, 0.5, 0)
 			navIcon.ZIndex = 2
 			navIcon.Text = iconInfo.value
-			navIcon.TextSize = 13
+			navIcon.TextSize = 15
 			navIcon.FontFace = Font.new("rbxasset://fonts/families/Ubuntu.json")
 			navIcon.TextColor3 = isFirst and Library.Theme.TextPrimary or Library.Theme.TextSecondary
 			navIcon.TextXAlignment = Enum.TextXAlignment.Center
@@ -1390,8 +1390,8 @@ local navW=145
 			navIcon.AnchorPoint = Vector2.new(0, 0.5)
 			navIcon.Image = iconInfo.kind == "image" and iconInfo.value or ""
 			navIcon.ImageColor3 = isFirst and Library.Theme.TextPrimary or Library.Theme.TextSecondary
-			navIcon.Size = UDim2.new(0, 13, 0, 13)
-			navIcon.Position = UDim2.new(0, 5, 0.5, 0)
+			navIcon.Size = UDim2.new(0, 18, 0, 18)
+			navIcon.Position = UDim2.new(0, 6, 0.5, 0)
 			navIcon.ZIndex = 2
 		end
 		Tab._navIcon = navIcon
@@ -1399,11 +1399,11 @@ local navW=145
 
 		local navText=Instance.new("TextLabel",Tab._navBtn)
 		navText.BackgroundTransparency=1; navText.BorderSizePixel=0
-		navText.TextSize=12; navText.FontFace=Font.new("rbxasset://fonts/families/Ubuntu.json")
+		navText.TextSize=14; navText.FontFace=Font.new("rbxasset://fonts/families/Ubuntu.json")
 		navText.TextColor3=isFirst and Library.Theme.TextPrimary or Library.Theme.TextSecondary
 		navText.Text=opts.name; navText.TextTruncate=Enum.TextTruncate.AtEnd
 		navText.TextXAlignment=Enum.TextXAlignment.Left
-		navText.Size=UDim2.new(1,-22,1,0); navText.Position=UDim2.new(0,22,0,0); navText.ZIndex=2
+		navText.Size=UDim2.new(1,-30,1,0)); navText.Position=UDim2.new(0,30,0,0); navText.ZIndex=2
 		Tab._navText=navText
 
 		if opts.badge then
