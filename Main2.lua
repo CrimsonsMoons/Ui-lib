@@ -1,4 +1,4 @@
----- ══════════════════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════════════════
 -- SERVICES
 -- ══════════════════════════════════════════════════════════════════════
 local Players      = game:GetService("Players")
@@ -1013,14 +1013,14 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		if navOpen then
 			-- Slide nav in
 			tw(Nav,     { Size     = UDim2.new(0, navW, 1, -34) }, TI_SLOW)
-			tw(Content, { Position = UDim2.new(0, navW+6, 0, 42),
-			              Size     = UDim2.new(1, -(navW+12), 1, -48) }, TI_SLOW)
+			tw(Content, { Position = UDim2.new(0, navW+10, 0, 46),
+			              Size     = UDim2.new(1, -(navW+20), 1, -56) }, TI_SLOW)
 			for _, b in ipairs(_sbLines) do tw(b, {BackgroundColor3 = Library.Theme.TextSecondary}) end
 		else
 			-- Slide nav out
 			tw(Nav,     { Size     = UDim2.new(0, 0, 1, -34) }, TI_SLOW)
-			tw(Content, { Position = UDim2.new(0, 6, 0, 42),
-			              Size     = UDim2.new(1, -12, 1, -48) }, TI_SLOW)
+			tw(Content, { Position = UDim2.new(0, 10, 0, 46),
+			              Size     = UDim2.new(1, -20, 1, -56) }, TI_SLOW)
 			for _, b in ipairs(_sbLines) do tw(b, {BackgroundColor3 = Library.Theme.Accent}) end
 		end
 	end)
@@ -1142,7 +1142,6 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 	function GUI:Destroy()
 		if _destroyed then return end
 		_destroyed=true; keybindListening=false
-		syncMobileReopen()
 		for _,c in ipairs(_connections) do pcall(function() c:Disconnect() end) end
 		_connections={}
 		if _mainTween then _mainTween:Cancel(); _mainTween = nil end
@@ -1166,14 +1165,6 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 	end
 
 	function GUI:SetTitle(text) titleLabel.Text = tostring(text or "") end
-	function GUI:SetOpen(state)
-		GUI._open = state and true or false
-		MainWrap.Visible = GUI._open
-		syncMobileReopen()
-	end
-	function GUI:ToggleOpen()
-		self:SetOpen(not GUI._open)
-	end
 	function GUI:SetAccent(color)
 		-- Change accent color at runtime and update all accent elements
 		Library.Theme.Accent = color
@@ -1190,84 +1181,6 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 	end
 
 	minBtn.MouseButton1Click:Connect(doMinimize)
-
-	-- ── Mobile reopen chip (shows only when UI is hidden) ───────────────────
-	local reopenBtn, reopenDragArea, reopenText
-	local reopenDragging = false
-	local reopenDragStart, reopenStartPos
-	local function syncMobileReopen()
-		if reopenBtn then
-			reopenBtn.Visible = MOBILE and (not GUI._open) and (not _destroyed)
-		end
-	end
-	if MOBILE then
-		reopenBtn = Instance.new("Frame", SG)
-		reopenBtn.Name = "MobileReopen"
-		reopenBtn.AnchorPoint = Vector2.new(0, 0.5)
-		reopenBtn.Size = UDim2.new(0, 52, 0, 52)
-		reopenBtn.Position = UDim2.new(0, 16, 0.5, 0)
-		reopenBtn.BackgroundColor3 = Library.Theme.Surface
-		reopenBtn.BorderSizePixel = 0
-		reopenBtn.Visible = false
-		reopenBtn.ZIndex = 1200
-		corner(reopenBtn, 999)
-		stroke(reopenBtn, Library.Theme.Border)
-
-		local reopenAccent = Instance.new("Frame", reopenBtn)
-		reopenAccent.AnchorPoint = Vector2.new(0.5, 0.5)
-		reopenAccent.Position = UDim2.new(0.5, 0, 0.5, 0)
-		reopenAccent.Size = UDim2.new(1, -8, 1, -8)
-		reopenAccent.BackgroundColor3 = Library.Theme.Accent
-		reopenAccent.BackgroundTransparency = 0.15
-		reopenAccent.BorderSizePixel = 0
-		reopenAccent.ZIndex = 1201
-		corner(reopenAccent, 999)
-
-		reopenText = Instance.new("TextLabel", reopenBtn)
-		reopenText.BackgroundTransparency = 1
-		reopenText.Size = UDim2.new(1, 0, 1, 0)
-		reopenText.Text = "≡"
-		reopenText.TextSize = 22
-		reopenText.FontFace = Font.new("rbxasset://fonts/families/Ubuntu.json", Enum.FontWeight.Bold)
-		reopenText.TextColor3 = Color3.fromRGB(255,255,255)
-		reopenText.ZIndex = 1202
-
-		reopenDragArea = Instance.new("TextButton", reopenBtn)
-		reopenDragArea.BackgroundTransparency = 1
-		reopenDragArea.Size = UDim2.new(1, 0, 1, 0)
-		reopenDragArea.Text = ""
-		reopenDragArea.AutoButtonColor = false
-		reopenDragArea.ZIndex = 1203
-
-		reopenDragArea.InputBegan:Connect(function(i)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-				reopenDragging = true
-				reopenDragStart = i.Position
-				reopenStartPos = reopenBtn.Position
-			end
-		end)
-		track(UIS.InputChanged:Connect(function(i)
-			if not reopenDragging then return end
-			if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
-			local d = i.Position - reopenDragStart
-			local vps = workspace.CurrentCamera.ViewportSize
-			local newX = math.clamp(reopenStartPos.X.Offset + d.X, 8, vps.X - reopenBtn.AbsoluteSize.X - 8)
-			local newY = math.clamp(reopenStartPos.Y.Offset + d.Y, reopenBtn.AbsoluteSize.Y/2 + 8, vps.Y - reopenBtn.AbsoluteSize.Y/2 - 8)
-			reopenBtn.Position = UDim2.new(0, newX, 0, newY)
-		end))
-		track(UIS.InputEnded:Connect(function(i)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-				reopenDragging = false
-			end
-		end))
-		reopenDragArea.MouseButton1Click:Connect(function()
-			if reopenDragging then return end
-			GUI._open = true
-			MainWrap.Visible = true
-			syncMobileReopen()
-		end)
-	end
-
 	exitBtn.MouseButton1Click:Connect(function()
 		if _destroyed then return end
 		if options.onClose then pcall(options.onClose) end
@@ -1321,14 +1234,11 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		if _destroyed or gpe or keybindListening then return end
 		if input.UserInputType~=Enum.UserInputType.Keyboard then return end
 		if input.KeyCode==keys.toggle then
-			GUI._open = not GUI._open
-			MainWrap.Visible = GUI._open
-			syncMobileReopen()
+			GUI._open=not GUI._open; MainWrap.Visible=GUI._open
 		elseif input.KeyCode==keys.minimize and GUI._open then
 			doMinimize()
 		end
 	end))
-	syncMobileReopen()
 
 	-- ── Window drag ─────────────────────────────────────────────────────────
 	-- InputBegan on Topbar starts drag; move/end tracked globally so fast
@@ -1428,9 +1338,9 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		Tab._scroll.Visible=true
 		pad(Tab._scroll,4,4,6,2)
 		local sL=Instance.new("UIListLayout",Tab._scroll)
-		sL.Padding=UDim.new(0,7); sL.SortOrder=Enum.SortOrder.LayoutOrder
+		sL.Padding=UDim.new(0,9); sL.SortOrder=Enum.SortOrder.LayoutOrder
 		sL:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-			Tab._scroll.CanvasSize=UDim2.new(0,0,0,sL.AbsoluteContentSize.Y+10)
+			Tab._scroll.CanvasSize=UDim2.new(0,0,0,sL.AbsoluteContentSize.Y+14)
 		end)
 
 		Tab._navBtn=Instance.new("Frame",BtnHolder)
@@ -1493,7 +1403,7 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		navText.TextColor3=isFirst and Library.Theme.TextPrimary or Library.Theme.TextSecondary
 		navText.Text=opts.name; navText.TextTruncate=Enum.TextTruncate.AtEnd
 		navText.TextXAlignment=Enum.TextXAlignment.Left
-		navText.Size=UDim2.new(1,-30,1,0)); navText.Position=UDim2.new(0,30,0,0); navText.ZIndex=2
+		navText.Size=UDim2.new(1,-40,1,0); navText.Position=UDim2.new(0,34,0,0); navText.ZIndex=2
 		Tab._navText=navText
 
 		if opts.badge then
