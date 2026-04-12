@@ -7842,6 +7842,66 @@ an.Tabs[av]=ax
 
 ar:Display()
 
+local function rebuildSelectedValues()
+	table.clear(selectedValues)
+	for _, tabObj in ipairs(an.Tabs) do
+		if tabObj.Selected then
+			table.insert(selectedValues, tabObj.Original or tabObj.Value or tabObj.Title)
+		end
+	end
+end
+
+local function updateDisplayText()
+	if not an.Display then
+		return
+	end
+
+	if an.Multi then
+		if #selectedValues == 0 then
+			an.Display("None")
+		elseif #selectedValues <= 2 then
+			local out = {}
+			for _, item in ipairs(selectedValues) do
+				table.insert(out, tostring(item))
+			end
+			an.Display(table.concat(out, ", "))
+		else
+			an.Display(tostring(#selectedValues) .. " selected")
+		end
+	else
+		an.Display(selectedValues[1] and tostring(selectedValues[1]) or "None")
+	end
+end
+
+local function setSelected(tabObj, state)
+	tabObj.Selected = state
+
+	if tabObj.UIElements and tabObj.UIElements.TabItem and tabObj.UIElements.TabItem:FindFirstChild("Highlight") then
+		tabObj.UIElements.TabItem.Highlight.ImageTransparency = state and 0.75 or 1
+	end
+
+	if tabObj.UIElements and tabObj.UIElements.TabItem and tabObj.UIElements.TabItem:FindFirstChild("Frame") then
+		local title = tabObj.UIElements.TabItem.Frame.Title.TextLabel
+		if title then
+			title.TextTransparency = state and 0 or 0.4
+		end
+	end
+
+	if tabObj.UIElements and tabObj.UIElements.TabIcon then
+		tabObj.UIElements.TabIcon.ImageLabel.ImageTransparency = state and 0 or 0.2
+	end
+
+	if tabObj.UIElements and tabObj.UIElements.TabItem then
+		tabObj.UIElements.TabItem.ImageTransparency = state and 0.95 or 1
+	end
+end
+
+an.Tabs[av]=ax
+
+ar:Display()
+
+if aq=="Dropdown"then
+	aj.AddSignal(ax.UIElements.TabItem.MouseButton1Click,function()
 if aq=="Dropdown"then
 aj.AddSignal(ax.UIElements.TabItem.MouseButton1Click,function()
 if ax.Locked then
@@ -8109,6 +8169,18 @@ ao.Value={}
 end
 if ao.Values and typeof(ao.Value)=="number"then
 ao.Value=ao.Values[ao.Value]
+end
+local selectedValues = {}
+local selectedLookup = {}
+
+if ao.Multi and type(ao.Value) == "table" then
+	for _, v in ipairs(ao.Value) do
+		selectedLookup[v] = true
+		table.insert(selectedValues, v)
+	end
+elseif ao.Value ~= nil then
+	selectedLookup[ao.Value] = true
+	table.insert(selectedValues, ao.Value)
 end
 
 local ap=true
