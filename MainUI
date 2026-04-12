@@ -448,8 +448,8 @@ function Library:new(options)
 	tw(barFill,{Size=UDim2.new(1,0,1,0)},TweenInfo.new(options.loadingTime,Enum.EasingStyle.Quad))
 
 local vp   = workspace.CurrentCamera.ViewportSize
-local winW = MOBILE and math.min(vp.X-20,560) or 720
-local winH = 500
+local winW = MOBILE and math.min(vp.X-20,590) or 760
+local winH = 530
 	local WIN_MIN_W = 340
 	local WIN_MIN_H = 220
 	local WIN_MAX_W = 800
@@ -772,7 +772,7 @@ end)
 	topLine.BackgroundColor3=Library.Theme.Border; topLine.BorderSizePixel=0
 	topLine.AnchorPoint=Vector2.new(0,1); topLine.Size=UDim2.new(1,0,0,1); topLine.Position=UDim2.new(0,0,1,0)
 
-local navW=165
+local navW=175
 	local Nav=Instance.new("Frame",Main)
 	Nav.Name="Nav"; Nav.BorderSizePixel=0
 	Nav.BackgroundColor3=Library.Theme.Nav
@@ -1001,8 +1001,8 @@ local navW=165
 
 local Content=Instance.new("Frame",Main)
 Content.Name="Content"; Content.BackgroundTransparency=1; Content.BorderSizePixel=0
-Content.Position=UDim2.new(0,navW+10,0,46); Content.ClipsDescendants=true
-Content.Size=UDim2.new(1,-(navW+20),1,-56)
+Content.Position=UDim2.new(0,navW+12,0,48); Content.ClipsDescendants=true
+Content.Size=UDim2.new(1,-(navW+24),1,-60)
 	GUI._content=Content
 
 	-- Wire sidebar toggle button
@@ -1013,8 +1013,8 @@ Content.Size=UDim2.new(1,-(navW+20),1,-56)
 		if navOpen then
 			-- Slide nav in
 			tw(Nav,     { Size     = UDim2.new(0, navW, 1, -34) }, TI_SLOW)
-			tw(Content, { Position = UDim2.new(0, navW+10, 0, 46),
-			              Size     = UDim2.new(1, -(navW+20), 1, -56) }, TI_SLOW)
+			tw(Content, { Position = UDim2.new(0, navW+12, 0, 48),
+			              Size     = UDim2.new(1, -(navW+24), 1, -60) }, TI_SLOW)
 			for _, b in ipairs(_sbLines) do tw(b, {BackgroundColor3 = Library.Theme.TextSecondary}) end
 		else
 			-- Slide nav out
