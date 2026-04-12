@@ -447,9 +447,9 @@ function Library:new(options)
 	barFill.Size=UDim2.new(0,0,1,0); barFill.ZIndex=102; corner(barFill,2)
 	tw(barFill,{Size=UDim2.new(1,0,1,0)},TweenInfo.new(options.loadingTime,Enum.EasingStyle.Quad))
 
-	local vp   = workspace.CurrentCamera.ViewportSize
-	local winW = MOBILE and math.min(vp.X-20,440) or 480
-	local winH = 330
+local vp   = workspace.CurrentCamera.ViewportSize
+local winW = MOBILE and math.min(vp.X-20,560) or 720
+local winH = 500
 	local WIN_MIN_W = 340
 	local WIN_MIN_H = 220
 	local WIN_MAX_W = 800
@@ -676,16 +676,12 @@ function Library:new(options)
 		kInput.FocusLost:Connect(function(enter) if enter then submitKey() end end)
 	end
 
-	task.delay(options.loadingTime+0.1,function()
-		_subLoop=false
-		for _,d in ipairs(Loader:GetDescendants()) do
-			pcall(function() tw(d,{TextTransparency=1,ImageTransparency=1},TweenInfo.new(0.3)) end)
-		end
-		tw(Loader,{BackgroundTransparency=1},TweenInfo.new(0.4),function()
-			pcall(function() Loader:Destroy() end)
-			runKeyGate(showMainWindow)
-		end)
-	end)
+_subLoop = false
+Loader.Visible = false
+pcall(function() Loader:Destroy() end)
+task.defer(function()
+	runKeyGate(showMainWindow)
+end)
 
 	local Topbar=Instance.new("Frame",Main)
 	Topbar.Name="Topbar"; Topbar.BorderSizePixel=0
@@ -776,7 +772,7 @@ function Library:new(options)
 	topLine.BackgroundColor3=Library.Theme.Border; topLine.BorderSizePixel=0
 	topLine.AnchorPoint=Vector2.new(0,1); topLine.Size=UDim2.new(1,0,0,1); topLine.Position=UDim2.new(0,0,1,0)
 
-	local navW=115
+local navW=145
 	local Nav=Instance.new("Frame",Main)
 	Nav.Name="Nav"; Nav.BorderSizePixel=0
 	Nav.BackgroundColor3=Library.Theme.Nav
