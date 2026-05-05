@@ -10,6 +10,7 @@ local StarterGui   = game:GetService("StarterGui")
 local Lighting     = game:GetService("Lighting")
 local TextService  = game:GetService("TextService")
 local GuiService   = game:GetService("GuiService")
+local Stats        = game:GetService("Stats")
 
 local LP      = Players.LocalPlayer
 local TI_FAST = TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -17,7 +18,7 @@ local TI_SLOW = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.
 local MOBILE  = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 local Library = {}
-Library.Version = "4.8-config-profiles"
+Library.Version = "5.18-topright-space-theme-stable"
 
 -- ══════════════════════════════════════════════════════════════════════
 -- ICON SYSTEM
@@ -301,6 +302,7 @@ Library.Accents.Coral     = Color3.fromRGB(255, 115, 125)
 Library.Accents.HotPink   = Color3.fromRGB(255, 75, 190)
 Library.Accents.Ice       = Color3.fromRGB(205, 245, 255)
 Library.Accents.Graphite  = Color3.fromRGB(165, 170, 185)
+Library.Accents.Starlight = Color3.fromRGB(115, 185, 255)
 
 -- Extra 4.2 full themes. Existing theme names are untouched for compatibility.
 Library.Themes.Cyber = {
@@ -337,6 +339,16 @@ Library.Themes.Candy = {
 	Background=Color3.fromRGB(36,20,38), Surface=Color3.fromRGB(50,29,54), SurfaceHover=Color3.fromRGB(68,40,74),
 	Nav=Color3.fromRGB(29,14,32), Topbar=Color3.fromRGB(24,10,28), Border=Color3.fromRGB(86,50,92), BorderHover=Color3.fromRGB(150,86,160),
 	TextPrimary=Color3.fromRGB(255,236,255), TextSecondary=Color3.fromRGB(220,150,215), TextDisabled=Color3.fromRGB(126,82,128), UserBox=Color3.fromRGB(42,22,46)
+}
+
+-- Animated theme. The normal theme fields keep the UI styled; Stars=true enables
+-- the moving star layer inside the main window background.
+Library.Themes.Space = {
+	Background=Color3.fromRGB(5,7,18), Surface=Color3.fromRGB(12,16,34), SurfaceHover=Color3.fromRGB(20,27,54),
+	Nav=Color3.fromRGB(7,10,24), Topbar=Color3.fromRGB(4,6,16), Border=Color3.fromRGB(36,50,92), BorderHover=Color3.fromRGB(90,125,210),
+	TextPrimary=Color3.fromRGB(235,244,255), TextSecondary=Color3.fromRGB(145,170,220), TextDisabled=Color3.fromRGB(76,92,135), UserBox=Color3.fromRGB(8,12,28),
+	Stars=true,
+	Accent=Color3.fromRGB(115,185,255)
 }
 
 local function tw(obj, goal, ti, cb)
@@ -422,43 +434,89 @@ end
 
 local _ttFrame, _ttLabel, _ttConn
 local function setupTooltip(sg)
-	_ttFrame=Instance.new("Frame",sg); _ttFrame.Name="_Tooltip"
-	_ttFrame.BackgroundColor3=Color3.fromRGB(14,14,14); _ttFrame.BorderSizePixel=0
-	_ttFrame.Size=UDim2.new(0,150,0,24); _ttFrame.Visible=false; _ttFrame.ZIndex=9999
-	corner(_ttFrame,4); stroke(_ttFrame,Color3.fromRGB(55,55,55))
-	_ttLabel=Instance.new("TextLabel",_ttFrame); _ttLabel.BackgroundTransparency=1
-	_ttLabel.TextSize=11; _ttLabel.FontFace=Font.new("rbxasset://fonts/families/Ubuntu.json")
-	_ttLabel.TextColor3=Color3.fromRGB(195,195,195); _ttLabel.Size=UDim2.new(1,-10,1,0)
-	_ttLabel.Position=UDim2.new(0,5,0,0)
-	_ttLabel.TextXAlignment=Enum.TextXAlignment.Center; _ttLabel.ZIndex=10000
+	-- Ventura 5.1 tooltip fix:
+	-- The old tooltip was always 24px tall, so wrapped/long text could hang outside
+	-- the dark background. This version measures + wraps text, then sizes the
+	-- background card to fully cover the description.
+	_ttFrame = Instance.new("Frame", sg)
+	_ttFrame.Name = "_Tooltip"
+	_ttFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+	_ttFrame.BorderSizePixel = 0
+	_ttFrame.Size = UDim2.new(0, 160, 0, 28)
+	_ttFrame.Visible = false
+	_ttFrame.ZIndex = 9999
+	_ttFrame.ClipsDescendants = false
+	corner(_ttFrame, 6)
+	stroke(_ttFrame, Color3.fromRGB(70, 70, 70), 1)
+
+	local tipPad = Instance.new("UIPadding", _ttFrame)
+	tipPad.PaddingTop = UDim.new(0, 7)
+	tipPad.PaddingBottom = UDim.new(0, 7)
+	tipPad.PaddingLeft = UDim.new(0, 9)
+	tipPad.PaddingRight = UDim.new(0, 9)
+
+	_ttLabel = Instance.new("TextLabel", _ttFrame)
+	_ttLabel.Name = "TooltipText"
+	_ttLabel.BackgroundTransparency = 1
+	_ttLabel.BorderSizePixel = 0
+	_ttLabel.TextSize = 11
+	_ttLabel.FontFace = Font.new("rbxasset://fonts/families/Ubuntu.json")
+	_ttLabel.TextColor3 = Color3.fromRGB(210, 210, 210)
+	_ttLabel.TextXAlignment = Enum.TextXAlignment.Left
+	_ttLabel.TextYAlignment = Enum.TextYAlignment.Top
+	_ttLabel.TextWrapped = true
+	_ttLabel.TextTruncate = Enum.TextTruncate.None
+	_ttLabel.Size = UDim2.new(1, 0, 1, 0)
+	_ttLabel.ZIndex = 10000
+
 	if _ttConn then pcall(function() _ttConn:Disconnect() end) end
 	_ttConn = RunService.RenderStepped:Connect(function()
 		if _ttFrame and _ttFrame.Visible then
 			if UIS:GetFocusedTextBox() then _ttFrame.Visible = false; return end
-			local mp=UIS:GetMouseLocation()
-			local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280,720)
-			local w,h = _ttFrame.AbsoluteSize.X, _ttFrame.AbsoluteSize.Y
-			local x = math.clamp(mp.X + 14, 4, math.max(4, vp.X - w - 4))
-			local y = math.clamp(mp.Y + 14, 4, math.max(4, vp.Y - h - 4))
-			_ttFrame.Position=UDim2.new(0,x,0,y)
+			local mp = UIS:GetMouseLocation()
+			local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
+			local w, h = _ttFrame.AbsoluteSize.X, _ttFrame.AbsoluteSize.Y
+			local x = mp.X + 16
+			local y = mp.Y + 18
+			if x + w + 8 > vp.X then x = mp.X - w - 16 end
+			if y + h + 8 > vp.Y then y = mp.Y - h - 16 end
+			x = math.clamp(x, 6, math.max(6, vp.X - w - 6))
+			y = math.clamp(y, 6, math.max(6, vp.Y - h - 6))
+			_ttFrame.Position = UDim2.new(0, x, 0, y)
 		end
 	end)
 end
+
+local function _tooltipSizeFor(text)
+	text = tostring(text or "")
+	local rawW = textWidth(text, 11, Enum.Font.SourceSans)
+	local w = math.clamp(math.floor(rawW + 26), 110, 340)
+	local innerW = math.max(40, w - 18)
+	local h = math.clamp(math.floor(textHeight(text, innerW, 11, Enum.Font.SourceSans) + 17), 28, 190)
+	return w, h
+end
+
 local function addTooltip(frame, text)
-	if not frame or not text or text=="" or MOBILE then return end
+	text = tostring(text or "")
+	if not frame or text == "" or MOBILE then return end
 	local showing = false
+	local alive = true
+
 	local function show()
-		if not _ttLabel or not _ttFrame or UIS:GetFocusedTextBox() then return end
+		if not alive or not _ttLabel or not _ttFrame or UIS:GetFocusedTextBox() then return end
 		showing = true
-		_ttLabel.Text=tostring(text)
-		local w = math.clamp(textWidth(text, 11, Enum.Font.SourceSans) + 22, 80, 360)
-		_ttFrame.Size=UDim2.new(0,w,0,24)
-		_ttFrame.Visible=true
+		_ttLabel.Text = text
+		local w, h = _tooltipSizeFor(text)
+		_ttFrame.Size = UDim2.new(0, w, 0, h)
+		_ttFrame.Visible = true
+		_ttFrame.BackgroundTransparency = 0
 	end
+
 	local function hide()
 		showing = false
-		if _ttFrame then _ttFrame.Visible=false end
+		if _ttFrame then _ttFrame.Visible = false end
 	end
+
 	pcall(function() frame.MouseEnter:Connect(show) end)
 	pcall(function() frame.MouseLeave:Connect(hide) end)
 	frame.InputBegan:Connect(function(i)
@@ -466,6 +524,9 @@ local function addTooltip(frame, text)
 	end)
 	frame.InputEnded:Connect(function(i)
 		if i.UserInputType == Enum.UserInputType.MouseMovement and showing then hide() end
+	end)
+	frame.AncestryChanged:Connect(function(_, parent)
+		if parent == nil then alive = false; if showing then hide() end end
 	end)
 end
 
@@ -486,15 +547,33 @@ function Library:new(options)
 		theme           = nil,
 		configProfile   = "Default",
 		profile         = nil,
+		autoLoad        = true,
+		autoLoadConfig  = true,
+		configAutoLoad  = true,
 		onClose         = nil,
 		watermark       = nil,
+		watermarkStats  = true,    -- show FPS + ping in the top-left watermark bar
 		destroyOnRespawn= false,
+		reconnectOnRespawn = true,
+		reconnectDelay   = 0.85,
 		keyEnabled      = false,
 		key             = nil,
 		keyLink         = nil,
 		onKeySuccess    = nil,
 		onKeyFail       = nil,
 		aiEnabled       = false,   -- set true for a free built-in AI assistant (no key needed)
+		floatingMiniUI  = false,   -- legacy separate top-right HUD; off by default
+		miniUI          = nil,     -- alias: true only if you intentionally want the old top-right HUD
+		miniTitle       = "VENTURA",
+		responsiveScale = true,    -- auto-fit/rescale when the Roblox window/screen size changes
+		resizeSnap      = true,    -- when the Roblox window changes size, snap UI back to visible spots
+		resizeSnapMode  = "center", -- main window snap mode: "center" or "corner"
+		looseDragBounds = false,   -- legacy option; drag borders are removed in 5.8
+		dragBounds      = false,   -- false = no screen-edge clamping at all
+		offscreenGrip   = 0,       -- legacy option kept for compatibility
+		dragOutMultiplier = 1.0,  -- normal 1:1 dragging by default
+		minimizeBubbleIcon = nil, -- kept for compatibility; modern bubble no longer renders icon text
+		goodbyeNotification = false, -- off by default so closing stops activity immediately
 	}, options)
 
 	if options.theme and Library.Themes and Library.Themes[options.theme] then
@@ -512,7 +591,42 @@ function Library:new(options)
 	local _destroyed      = false
 	local _connections    = {}
 
-	local GUI = {CurrentTab=nil, _tabs={}, _open=true, _accentObjects={}, _keybindWidgets={}, _activeKeybind=nil, _configControls={}, _loadedConfigData=nil, _configApplying=false}
+	local function getOffscreenGrip(defaultGrip)
+		-- 5.8 removes drag borders entirely. This is kept so older scripts using
+		-- SetOffscreenGrip/GetOffscreenGrip do not error.
+		local g = tonumber(options.offscreenGrip) or defaultGrip or 0
+		return math.max(0, math.floor(g + 0.5))
+	end
+
+	local function getDragOutMultiplier()
+		return math.clamp(tonumber(options.dragOutMultiplier) or 1, 0.1, 5)
+	end
+
+	local function _dragBordersEnabled()
+		return options.dragBounds == true
+	end
+
+	local function _offsetPosition(pos, fallbackX, fallbackY)
+		local cam = workspace.CurrentCamera
+		local vp = cam and cam.ViewportSize or Vector2.new(1280, 720)
+		if not pos then return UDim2.new(0, fallbackX or 14, 0, fallbackY or 14) end
+		local x = pos.X.Offset
+		local y = pos.Y.Offset
+		if pos.X.Scale ~= 0 then x = math.floor(vp.X * pos.X.Scale + pos.X.Offset + 0.5) end
+		if pos.Y.Scale ~= 0 then y = math.floor(vp.Y * pos.Y.Scale + pos.Y.Offset + 0.5) end
+		return UDim2.new(0, x, 0, y)
+	end
+
+	local GUI = {CurrentTab=nil, _tabs={}, _open=true, _accentObjects={}, _keybindWidgets={}, _activeKeybind=nil, _configControls={}, _toggleControls={}, _reconnectControls={}, _reconnectCallbacks={}, _loadedConfigData=nil, _configApplying=false, _destroyCallbacks={}, _cleanupCallbacks={}, _trackedProperties={}, _trackedHumanoidProperties={}, _trackedInstances={}, _activityStopped=false, _reconnectEnabled=(options.reconnectOnRespawn ~= false), _reconnectDelay=tonumber(options.reconnectDelay) or 0.85, _respawnToken=0}
+
+	-- Top-right watermark / mini bar stats state
+	local wmFrame, wmLbl, wmBaseText
+	local wmStatsVisible = true
+	-- 5.18: stats bar defaults to top-right so it stays clear of Roblox top-left UI.
+	local WM_DEFAULT_X, WM_DEFAULT_Y = -14, 14
+
+	-- Predeclared here so viewport-resize snapping can also recover the minimized restore bubble.
+	local minimizeBubble
 
 	-- Config ID / flag helpers -------------------------------------------------
 	-- Use opts.flag / opts.configId / opts.configID / opts.saveId / opts.id on controls.
@@ -610,9 +724,87 @@ function Library:new(options)
 		return control
 	end
 
+	-- Respawn reconnect helpers --------------------------------------------------
+	-- Controls that affect Character/Humanoid state can re-fire after death so
+	-- active features do not silently stop working on the new character.
+	local function _registerReconnectControl(control, opts, kind)
+		if not control then return control end
+		opts = opts or {}
+		local defaultReconnect = (kind == "toggle" or kind == "slider")
+		local shouldReconnect = (opts.reconnect == true) or (opts.reconnectOnRespawn == true)
+		if defaultReconnect and opts.reconnect ~= false and opts.reconnectOnRespawn ~= false then
+			shouldReconnect = true
+		end
+		control._reconnectKind = kind or "generic"
+		control._reconnectOnRespawn = shouldReconnect == true
+		control._callback = control._callback or opts.callback
+		if control._reconnectOnRespawn then
+			table.insert(GUI._reconnectControls, control)
+		end
+		return control
+	end
+
+	local function _safeControlValue(control)
+		if control and type(control.Get) == "function" then
+			local ok, value = pcall(function() return control:Get() end)
+			if ok then return value end
+		end
+		return control and control.Value
+	end
+
+	local function _runReconnect(reason)
+		if _destroyed or GUI._activityStopped or GUI._reconnectEnabled == false then return false end
+		local character = LP.Character
+		if not character then return false end
+		local humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid", 5)
+
+		-- Let scripts rebuild character-bound effects/connections first.
+		for _, callback in ipairs(GUI._reconnectCallbacks or {}) do
+			if type(callback) == "function" then
+				pcall(callback, character, humanoid, reason or "manual")
+			end
+		end
+
+		-- Re-apply active control callbacks. This fixes sliders like WalkSpeed and
+		-- toggles like noclip/auras that need to bind to the new character.
+		for i = #GUI._reconnectControls, 1, -1 do
+			local control = GUI._reconnectControls[i]
+			if not control or (control.frame and not control.frame.Parent) then
+				table.remove(GUI._reconnectControls, i)
+			elseif control._reconnectOnRespawn ~= false then
+				local value = _safeControlValue(control)
+				local kind = tostring(control._reconnectKind or "generic")
+				local callback = control._callback
+				if type(callback) == "function" then
+					if kind == "toggle" then
+						if value == true then pcall(callback, true, "respawn", character, humanoid) end
+					elseif kind == "slider" then
+						pcall(callback, value, "respawn", character, humanoid)
+					elseif control._forceReconnectCallback == true then
+						pcall(callback, value, "respawn", character, humanoid)
+					end
+				end
+			end
+		end
+		return true
+	end
+
+	local function _scheduleReconnect(reason, delayOverride)
+		if _destroyed or GUI._activityStopped or GUI._reconnectEnabled == false then return end
+		GUI._respawnToken = (GUI._respawnToken or 0) + 1
+		local token = GUI._respawnToken
+		task.delay(tonumber(delayOverride) or GUI._reconnectDelay or 0.85, function()
+			if token ~= GUI._respawnToken then return end
+			_runReconnect(reason or "respawn")
+		end)
+	end
+
 	local function track(c) table.insert(_connections,c) end
 	local function regAccent(obj, prop)
-		if obj then table.insert(GUI._accentObjects, {obj=obj, prop=prop or "BackgroundColor3"}) end
+		if obj then
+			pcall(function() obj:SetAttribute("VenturaAccent", true) end)
+			table.insert(GUI._accentObjects, {obj=obj, prop=prop or "BackgroundColor3"})
+		end
 		return obj
 	end
 	local function applyAccentToRegistered(color)
@@ -644,6 +836,250 @@ function Library:new(options)
 	SG.IgnoreGuiInset=true; SG.ResetOnSpawn=false
 	SG.DisplayOrder=999
 	GUI._sg=SG; setupTooltip(SG)
+	if _ttConn then track(_ttConn) end
+
+	-- Reconnect active controls after respawn/death so character-bound features keep working.
+	track(LP.CharacterAdded:Connect(function(character)
+		task.spawn(function()
+			if _destroyed or GUI._activityStopped then return end
+			pcall(function() character:WaitForChild("Humanoid", 5) end)
+			pcall(function() character:WaitForChild("HumanoidRootPart", 5) end)
+			_scheduleReconnect("CharacterAdded")
+		end)
+	end))
+
+	-- ══════════════════════════════════════════════════════════════════════
+	-- FLOATING MINI HUD — FPS + Ping
+	-- ══════════════════════════════════════════════════════════════════════
+	local miniFrame, miniTitleLbl, miniFpsLbl, miniPingLbl, miniAccent, miniStroke
+	local floatingMiniAllowed = (options.floatingMiniUI == true or options.miniUI == true)
+	local miniVisible = floatingMiniAllowed and true or false
+	local miniDrag, miniDragStart, miniStartPos = false, nil, nil
+	local miniStats = { fps = 0, ping = 0 }
+
+	local function _miniClampPosition(pos)
+		-- 5.8: no drag borders. Convert scale positions to absolute offsets, then leave them alone.
+		return _offsetPosition(pos, 14, 14)
+	end
+
+	local function _readPing()
+		local ping
+		local function pullStat(item)
+			if not item then return nil end
+			local value
+			pcall(function()
+				if item.GetValue then value = item:GetValue() end
+			end)
+			if value == nil then
+				pcall(function()
+					if item.GetValueString then value = item:GetValueString() end
+				end)
+			end
+			if type(value) == "string" then
+				value = value:match("[%d%.]+")
+			end
+			return tonumber(value)
+		end
+
+		pcall(function()
+			local network = Stats:FindFirstChild("Network")
+			local server = network and network:FindFirstChild("ServerStatsItem")
+			ping = pullStat(server and (server:FindFirstChild("Data Ping") or server:FindFirstChild("Ping")))
+		end)
+		if not ping then
+			pcall(function()
+				local perf = Stats:FindFirstChild("PerformanceStats")
+				ping = pullStat(perf and (perf:FindFirstChild("Ping") or perf:FindFirstChild("Network Ping")))
+			end)
+		end
+		if not ping then
+			pcall(function()
+				local network = Stats:FindFirstChild("Network")
+				for _, obj in ipairs(network and network:GetDescendants() or {}) do
+					if not ping and obj.Name:lower():find("ping", 1, true) then
+						ping = pullStat(obj)
+					end
+				end
+			end)
+		end
+
+		ping = tonumber(ping) or 0
+		-- Some stat objects report seconds; most report milliseconds.
+		if ping > 0 and ping < 1 then ping = ping * 1000 end
+		return math.clamp(math.floor(ping + 0.5), 0, 9999)
+	end
+
+	local function _miniColorForFPS(fps)
+		fps = tonumber(fps) or 0
+		if fps >= 55 then return Color3.fromRGB(80, 220, 130) end
+		if fps >= 35 then return Color3.fromRGB(235, 190, 70) end
+		return Color3.fromRGB(235, 85, 85)
+	end
+	local function _miniColorForPing(ping)
+		ping = tonumber(ping) or 0
+		if ping <= 90 then return Color3.fromRGB(80, 220, 130) end
+		if ping <= 160 then return Color3.fromRGB(235, 190, 70) end
+		return Color3.fromRGB(235, 85, 85)
+	end
+
+	local function _syncWatermarkStats()
+		if not wmFrame or not wmLbl then return end
+		local base = tostring(wmBaseText or options.watermark or options.name or "VenturaUI")
+		local text = base
+		if wmStatsVisible then
+			text = string.format("%s  •  FPS %d  •  PING %dms", base, tonumber(miniStats.fps) or 0, tonumber(miniStats.ping) or 0)
+		end
+		wmLbl.Text = text
+		local w = math.clamp(textWidth(text, 13, Enum.Font.RobotoMono) + 38, 130, 720)
+		wmFrame.Size = UDim2.new(0, w, 0, 30)
+	end
+
+	local function _setMiniText()
+		if miniFpsLbl then
+			miniFpsLbl.Text = "FPS " .. tostring(miniStats.fps)
+			miniFpsLbl.TextColor3 = _miniColorForFPS(miniStats.fps)
+		end
+		if miniPingLbl then
+			miniPingLbl.Text = "PING " .. tostring(miniStats.ping) .. "ms"
+			miniPingLbl.TextColor3 = _miniColorForPing(miniStats.ping)
+		end
+		_syncWatermarkStats()
+	end
+
+	-- Shared stats updater. This runs even when the old top-right HUD is disabled,
+	-- so the top-left mini/watermark bar still gets live FPS + ping.
+	local _fpsFrames, _fpsElapsed, _pingElapsed = 0, 0, 0
+	track(RunService.RenderStepped:Connect(function(dt)
+		if _destroyed then return end
+		_fpsFrames += 1
+		_fpsElapsed += dt
+		_pingElapsed += dt
+		if _fpsElapsed >= 0.5 then
+			miniStats.fps = math.clamp(math.floor(_fpsFrames / math.max(_fpsElapsed, 1/240) + 0.5), 0, 999)
+			_fpsFrames, _fpsElapsed = 0, 0
+			if _pingElapsed >= 1 then
+				_pingElapsed = 0
+				miniStats.ping = _readPing()
+			end
+			_setMiniText()
+		end
+	end))
+
+	local function _styleMiniHUD()
+		if not miniFrame then return end
+		miniFrame.BackgroundColor3 = Library.Theme.Surface
+		if miniStroke then miniStroke.Color = Library.Theme.Border end
+		if miniTitleLbl then miniTitleLbl.TextColor3 = Library.Theme.TextSecondary end
+		if miniAccent then miniAccent.BackgroundColor3 = Library.Theme.Accent end
+	end
+
+	local function createMiniHUD()
+		if miniFrame then return miniFrame end
+		miniFrame = Instance.new("Frame", SG)
+		miniFrame.Name = "FloatingMiniHUD"
+		miniFrame.BackgroundColor3 = Library.Theme.Surface
+		miniFrame.BorderSizePixel = 0
+		miniFrame.Size = UDim2.new(0, 190, 0, 42)
+		miniFrame.Position = UDim2.new(1, -206, 0, 14)
+		miniFrame.Visible = miniVisible
+		miniFrame.Active = true
+		miniFrame.ZIndex = 80
+		corner(miniFrame, 8)
+		miniStroke = stroke(miniFrame, Library.Theme.Border, 1)
+
+		miniAccent = Instance.new("Frame", miniFrame)
+		miniAccent.Name = "MiniAccent"
+		miniAccent.BackgroundColor3 = Library.Theme.Accent
+		miniAccent.BorderSizePixel = 0
+		miniAccent.Size = UDim2.new(0, 3, 1, -12)
+		miniAccent.Position = UDim2.new(0, 6, 0, 6)
+		miniAccent.ZIndex = 81
+		corner(miniAccent, 3)
+		regAccent(miniAccent)
+
+		miniTitleLbl = Instance.new("TextLabel", miniFrame)
+		miniTitleLbl.Name = "MiniTitle"
+		miniTitleLbl.BackgroundTransparency = 1
+		miniTitleLbl.BorderSizePixel = 0
+		miniTitleLbl.Position = UDim2.new(0, 16, 0, 4)
+		miniTitleLbl.Size = UDim2.new(1, -24, 0, 13)
+		miniTitleLbl.Text = tostring(options.miniTitle or options.name or "VENTURA"):upper()
+		miniTitleLbl.TextSize = 9
+		miniTitleLbl.TextColor3 = Library.Theme.TextSecondary
+		miniTitleLbl.TextXAlignment = Enum.TextXAlignment.Left
+		miniTitleLbl.TextTruncate = Enum.TextTruncate.AtEnd
+		miniTitleLbl.FontFace = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Bold)
+		miniTitleLbl.ZIndex = 81
+
+		local row = Instance.new("Frame", miniFrame)
+		row.Name = "MiniStatsRow"
+		row.BackgroundTransparency = 1
+		row.BorderSizePixel = 0
+		row.Position = UDim2.new(0, 16, 0, 18)
+		row.Size = UDim2.new(1, -24, 0, 20)
+		row.ZIndex = 81
+		local rl = Instance.new("UIListLayout", row)
+		rl.FillDirection = Enum.FillDirection.Horizontal
+		rl.HorizontalAlignment = Enum.HorizontalAlignment.Left
+		rl.VerticalAlignment = Enum.VerticalAlignment.Center
+		rl.Padding = UDim.new(0, 6)
+
+		local function pill(name, w)
+			local p = Instance.new("Frame", row)
+			p.Name = name .. "Pill"
+			p.BackgroundColor3 = Library.Theme.Background
+			p.BorderSizePixel = 0
+			p.Size = UDim2.new(0, w, 0, 18)
+			p.ZIndex = 82
+			corner(p, 6)
+			stroke(p, Color3.fromRGB(45,45,52), 1)
+			local t = Instance.new("TextLabel", p)
+			t.Name = name .. "Text"
+			t.BackgroundTransparency = 1
+			t.BorderSizePixel = 0
+			t.Size = UDim2.new(1, -8, 1, 0)
+			t.Position = UDim2.new(0, 4, 0, 0)
+			t.Text = name
+			t.TextSize = 10
+			t.TextColor3 = Library.Theme.TextPrimary
+			t.TextXAlignment = Enum.TextXAlignment.Center
+			t.FontFace = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.Bold)
+			t.ZIndex = 83
+			return t
+		end
+
+		miniFpsLbl = pill("FPS", 68)
+		miniPingLbl = pill("PING", 86)
+		_setMiniText()
+
+		miniFrame.InputBegan:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+				miniDrag = true
+				miniDragStart = i.Position
+				miniStartPos = miniFrame.Position
+			end
+		end)
+		track(UIS.InputChanged:Connect(function(i)
+			if not miniDrag or not miniFrame then return end
+			if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
+			local d = i.Position - miniDragStart
+			miniFrame.Position = _miniClampPosition(UDim2.new(miniStartPos.X.Scale, miniStartPos.X.Offset + d.X, miniStartPos.Y.Scale, miniStartPos.Y.Offset + d.Y))
+		end))
+		track(UIS.InputEnded:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+				if miniDrag then
+					miniDrag = false
+					pcall(function() GUI:SaveConfig() end)
+				end
+			end
+		end))
+
+		-- Stats are updated by the shared updater above.
+
+		return miniFrame
+	end
+
+	if floatingMiniAllowed then createMiniHUD() end
 
 	if options.destroyOnRespawn then
 		local function onRespawnEvent()
@@ -658,27 +1094,33 @@ function Library:new(options)
 	end
 
 	if options.watermark then
-		local wmFrame = Instance.new("Frame", SG)
+		wmBaseText = tostring(options.watermark)
+		wmStatsVisible = true
+		wmFrame = Instance.new("Frame", SG)
 		wmFrame.Name = "Watermark"
-		wmFrame.BackgroundColor3 = Color3.fromRGB(12,12,12)
+		wmFrame.BackgroundColor3 = Color3.fromRGB(9,9,12)
 		wmFrame.BorderSizePixel = 0
-		wmFrame.Size = UDim2.new(0, math.clamp(textWidth(options.watermark, 11, Enum.Font.RobotoMono) + 24, 70, 420), 0, 22)
-		wmFrame.Position = UDim2.new(0, 14, 0, 14)
+		wmFrame.Active = true
+		wmFrame.Size = UDim2.new(0, math.clamp(textWidth(wmBaseText, 13, Enum.Font.RobotoMono) + 38, 130, 720), 0, 30)
+		wmFrame.AnchorPoint = Vector2.new(1, 0)
+		wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y)
 		wmFrame.ZIndex = 50
-		corner(wmFrame, 4); stroke(wmFrame, Library.Theme.Border)
+		corner(wmFrame, 6); stroke(wmFrame, Library.Theme.BorderHover or Library.Theme.Border, 1)
 		local wmAccent = Instance.new("Frame", wmFrame)
 		wmAccent.BackgroundColor3 = Library.Theme.Accent; regAccent(wmAccent)
 		wmAccent.BorderSizePixel = 0
-		wmAccent.Size = UDim2.new(0, 2, 1, 0)
-		wmAccent.ZIndex = 51; corner(wmAccent, 2)
-		local wmLbl = Instance.new("TextLabel", wmFrame)
+		wmAccent.Size = UDim2.new(0, 3, 1, -8)
+		wmAccent.Position = UDim2.new(0, 6, 0, 4)
+		wmAccent.ZIndex = 51; corner(wmAccent, 3)
+		wmLbl = Instance.new("TextLabel", wmFrame)
 		wmLbl.BackgroundTransparency = 1
-		wmLbl.Size = UDim2.new(1,-10,1,0); wmLbl.Position = UDim2.new(0,8,0,0)
-		wmLbl.TextSize = 11; wmLbl.ZIndex = 51
-		wmLbl.FontFace = Font.new("rbxasset://fonts/families/RobotoMono.json")
-		wmLbl.TextColor3 = Library.Theme.TextSecondary
-		wmLbl.Text = options.watermark
+		wmLbl.Size = UDim2.new(1,-24,1,0); wmLbl.Position = UDim2.new(0,16,0,0)
+		wmLbl.TextSize = 13; wmLbl.ZIndex = 51
+		wmLbl.FontFace = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.SemiBold)
+		wmLbl.TextColor3 = Library.Theme.TextPrimary
+		wmLbl.Text = wmBaseText
 		wmLbl.TextXAlignment = Enum.TextXAlignment.Left
+		_syncWatermarkStats()
 		local wmDrag, wmDragStart, wmDragPos = false, nil, nil
 		wmFrame.InputBegan:Connect(function(i)
 			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
@@ -687,12 +1129,17 @@ function Library:new(options)
 		end)
 		track(UIS.InputChanged:Connect(function(i)
 			if wmDrag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-				local d = i.Position - wmDragStart
-				wmFrame.Position = UDim2.new(wmDragPos.X.Scale, wmDragPos.X.Offset+d.X, wmDragPos.Y.Scale, wmDragPos.Y.Offset+d.Y)
+				local d = (i.Position - wmDragStart) * getDragOutMultiplier()
+				local nx = wmDragPos.X.Offset + d.X
+				local ny = wmDragPos.Y.Offset + d.Y
+				wmFrame.Position = UDim2.new(wmDragPos.X.Scale, nx, wmDragPos.Y.Scale, ny)
 			end
 		end))
 		track(UIS.InputEnded:Connect(function(i)
-			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then wmDrag=false end
+			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+				if wmDrag then pcall(function() GUI:SaveConfig(true) end) end
+				wmDrag=false
+			end
 		end))
 		GUI._watermark = wmFrame
 	end
@@ -780,6 +1227,85 @@ local winH = math.min(580, vp.Y - 40)
 	GUI._main=Main
 	local MainWrap=Main -- alias so existing MainWrap refs still work
 
+	-- Animated Space theme background -----------------------------------------
+	local _spaceLayer, _spaceConn
+	local _spaceStars = {}
+	local _spaceEnabled = false
+
+	local function _makeSpaceLayer()
+		if _spaceLayer and _spaceLayer.Parent then return _spaceLayer end
+		_spaceLayer = Instance.new("Frame", Main)
+		_spaceLayer.Name = "SpaceStarBackground"
+		_spaceLayer.BackgroundTransparency = 1
+		_spaceLayer.BorderSizePixel = 0
+		_spaceLayer.Size = UDim2.new(1, 0, 1, 0)
+		_spaceLayer.Position = UDim2.new(0, 0, 0, 0)
+		_spaceLayer.ClipsDescendants = true
+		_spaceLayer.Active = false
+		_spaceLayer.ZIndex = 0
+		_spaceStars = {}
+
+		local starCount = 70
+		for i = 1, starCount do
+			local dot = Instance.new("Frame", _spaceLayer)
+			dot.Name = "Star"
+			dot.BorderSizePixel = 0
+			dot.BackgroundColor3 = i % 7 == 0 and Color3.fromRGB(135, 190, 255) or Color3.fromRGB(240, 248, 255)
+			dot.BackgroundTransparency = (i % 5 == 0) and 0.15 or 0.35
+			dot.ZIndex = 0
+			local size = (i % 11 == 0) and 3 or ((i % 3 == 0) and 2 or 1)
+			dot.Size = UDim2.new(0, size, 0, size)
+			corner(dot, size)
+			local data = {
+				obj = dot,
+				x = math.random(),
+				y = math.random(),
+				speed = 0.018 + math.random() * 0.055,
+				drift = (math.random() - 0.5) * 0.018,
+				pulse = math.random() * math.pi * 2,
+				baseTransparency = dot.BackgroundTransparency,
+			}
+			table.insert(_spaceStars, data)
+		end
+		return _spaceLayer
+	end
+
+	local function _stepSpaceStars(dt)
+		if not _spaceEnabled or not _spaceLayer or not _spaceLayer.Parent then return end
+		local w = math.max(_spaceLayer.AbsoluteSize.X, 1)
+		local h = math.max(_spaceLayer.AbsoluteSize.Y, 1)
+		for _, star in ipairs(_spaceStars) do
+			local o = star.obj
+			if o and o.Parent then
+				star.y = star.y + star.speed * dt
+				star.x = star.x + star.drift * dt
+				if star.y > 1.03 then
+					star.y = -0.03
+					star.x = math.random()
+				end
+				if star.x > 1.03 then star.x = -0.03 elseif star.x < -0.03 then star.x = 1.03 end
+				star.pulse = star.pulse + dt * 2.2
+				o.Position = UDim2.new(0, math.floor(star.x * w + 0.5), 0, math.floor(star.y * h + 0.5))
+				o.BackgroundTransparency = math.clamp(star.baseTransparency + math.sin(star.pulse) * 0.18, 0.05, 0.82)
+			end
+		end
+	end
+
+	local function _setSpaceBackground(enabled)
+		enabled = enabled == true
+		_spaceEnabled = enabled
+		if enabled then
+			_makeSpaceLayer()
+			_spaceLayer.Visible = true
+			if not _spaceConn then
+				_spaceConn = RunService.RenderStepped:Connect(_stepSpaceStars)
+				track(_spaceConn)
+			end
+		else
+			if _spaceLayer then _spaceLayer.Visible = false end
+		end
+	end
+
 	-- Predeclare minimized BEFORE scale helpers. In Lua, locals declared later are not captured,
 	-- so the old helper accidentally checked a global `minimized` instead of the real one.
 	local minimized = false
@@ -806,19 +1332,62 @@ local winH = math.min(580, vp.Y - 40)
 		else
 			MainWrap.Size = target.Size
 		end
-		-- Keep the centered/dragged window inside the screen after scale changes or config load.
-		local cam = workspace.CurrentCamera
-		local vps = cam and cam.ViewportSize or Vector2.new(1280, 720)
-		local px = MainWrap.Position.X.Offset
-		local py = MainWrap.Position.Y.Offset
-		if px ~= 0 or py ~= 0 then
-			MainWrap.Position = UDim2.new(
-				0, math.clamp(px, sw/2, vps.X - sw/2),
-				0, math.clamp(py, sh/2, vps.Y - sh/2)
-			)
-		end
+		-- 5.8: no drag borders. Scale changes keep the current position exactly as-is.
+		-- If a script explicitly enables dragBounds=true, old clamping can be added by user code.
 		return sw, sh
 	end
+
+	local _responsiveScaleEnabled = true -- 5.12+: responsive scale is always enabled by default
+	local _resizeSnapEnabled = options.resizeSnap ~= false
+	local _resizeSnapMode = tostring(options.resizeSnapMode or "center"):lower()
+	local _lastViewportSize = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
+
+	local function _snapMainToViewport(sw, sh)
+		local cam = workspace.CurrentCamera
+		local vps = cam and cam.ViewportSize or Vector2.new(1280, 720)
+		if _resizeSnapMode == "corner" or _resizeSnapMode == "top-left" or _resizeSnapMode == "topleft" then
+			MainWrap.Position = UDim2.new(0, math.floor(sw / 2 + 14), 0, math.floor(sh / 2 + 14))
+		else
+			MainWrap.Position = UDim2.new(0, math.floor(vps.X / 2), 0, math.floor(vps.Y / 2))
+		end
+	end
+
+	local function _snapSmallUIsToViewport()
+		-- Window resize recovery: no drag borders during normal use, but resize keeps UI visible.
+		if wmFrame and wmFrame.Parent then
+			wmFrame.AnchorPoint = Vector2.new(1, 0)
+			wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y)
+		end
+		if minimizeBubble and minimizeBubble.Parent then
+			minimizeBubble.Position = UDim2.new(0, 18, 0, 78)
+		end
+	end
+
+	local function _applyResponsiveScale(forceSnap)
+		if not _responsiveScaleEnabled or _destroyed or not MainWrap or not MainWrap.Parent then return end
+		WIN_MAX_W, WIN_MAX_H = getViewportLimit()
+		local sw, sh = applyWindowScale(false, minimized and 34 or nil)
+		local cam = workspace.CurrentCamera
+		local vps = cam and cam.ViewportSize or Vector2.new(1280, 720)
+		local viewportChanged = (math.abs(vps.X - _lastViewportSize.X) > 1 or math.abs(vps.Y - _lastViewportSize.Y) > 1)
+		_lastViewportSize = vps
+
+		if _resizeSnapEnabled and (forceSnap == true or viewportChanged) then
+			_snapMainToViewport(sw, sh)
+			_snapSmallUIsToViewport()
+		else
+			local x = MainWrap.Position.X.Offset ~= 0 and MainWrap.Position.X.Offset or (vps.X * 0.5)
+			local y = MainWrap.Position.Y.Offset ~= 0 and MainWrap.Position.Y.Offset or (vps.Y * 0.5)
+			MainWrap.Position = UDim2.new(0, x, 0, y)
+		end
+	end
+	task.defer(function() _applyResponsiveScale(true) end)
+	pcall(function()
+		track(workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			_applyResponsiveScale(true)
+			pcall(function() GUI:SaveConfig(true) end)
+		end))
+	end)
 
 	-- Inner border: child of Main, fills 100%, transparent bg, UIStroke clips with Main's corners
 	local _borderFrame=Instance.new("Frame",Main)
@@ -1491,26 +2060,403 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	-- ══════════════════════════════════════════════════════════════════════
 	local _mainTween = nil  -- tracks active tween on Main so we can cancel it
 
-	local function doMinimize()
-		local sw, sh = getScaledWindowSize()
-		minimized=not minimized
-		if _mainTween then _mainTween:Cancel() end
-		if minimized then
-			Nav.Visible=false; Content.Visible=false
-			_mainTween = tw(MainWrap,{Size=UDim2.new(0,sw,0,34)},TI_FAST)
+	-- Small draggable restore circle shown while the main window is minimized.
+	local minimizeBubbleIcon, minimizeBubbleStroke, minimizeBubbleAccent
+	local minimizeBubbleShadow, minimizeBubbleInner, minimizeBubbleGlow, minimizeBubbleDot, minimizeBubbleRing, minimizeBubbleGradient
+	local bubbleDragging, bubbleDragStart, bubbleStartPos, bubbleMoved = false, nil, nil, false
+	local doMinimize
+
+	local function _bubbleIconText()
+		-- 5.12: modern bubble is icon-free; keep function for old scripts without rendering emoji/text.
+		return ""
+	end
+
+	local function _styleMinimizeBubble()
+		if not minimizeBubble then return end
+		local accent = Library.Theme.Accent
+		local isSpace = tostring(GUI._savedTheme or ""):lower() == "space"
+		minimizeBubble.BackgroundColor3 = isSpace and Color3.fromRGB(8, 11, 26) or Library.Theme.Surface
+		if minimizeBubbleStroke then minimizeBubbleStroke.Color = accent end
+		if minimizeBubbleAccent then minimizeBubbleAccent.BackgroundColor3 = accent end
+		if minimizeBubbleGlow then
+			minimizeBubbleGlow.BackgroundColor3 = accent
+			minimizeBubbleGlow.BackgroundTransparency = isSpace and 0.64 or 0.78
+		end
+		if minimizeBubbleRing then
+			minimizeBubbleRing.BackgroundColor3 = accent
+			minimizeBubbleRing.BackgroundTransparency = isSpace and 0.82 or 0.88
+		end
+		if minimizeBubbleDot then minimizeBubbleDot.BackgroundColor3 = accent end
+		if minimizeBubbleInner then
+			minimizeBubbleInner.BackgroundColor3 = isSpace and Color3.fromRGB(10, 16, 38) or Color3.fromRGB(18,18,22)
+		end
+		if minimizeBubbleGradient then
+			minimizeBubbleGradient.Color = isSpace and ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 28, 70)),
+				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(8, 11, 26)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(2, 4, 12)),
+			}) or ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(42,42,52)),
+				ColorSequenceKeypoint.new(0.55, Library.Theme.Surface),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(12,12,16)),
+			})
+		end
+		for _, child in ipairs(minimizeBubble:GetDescendants()) do
+			if child.Name == "BubbleStar" then child.Visible = isSpace end
+		end
+	end
+
+	local function _createMinimizeBubble()
+		if minimizeBubble then return minimizeBubble end
+		minimizeBubble = Instance.new("TextButton", SG)
+		minimizeBubble.Name = "MinimizeRestoreCircle"
+		minimizeBubble.Size = UDim2.new(0, 62, 0, 62)
+		minimizeBubble.Position = UDim2.new(0, 18, 0, 78)
+		minimizeBubble.BackgroundColor3 = Library.Theme.Surface
+		minimizeBubble.BorderSizePixel = 0
+		minimizeBubble.Text = ""
+		minimizeBubble.Visible = false
+		minimizeBubble.Active = true
+		minimizeBubble.AutoButtonColor = false
+		minimizeBubble.ZIndex = 850
+		corner(minimizeBubble, 100)
+
+		minimizeBubbleShadow = Instance.new("Frame", minimizeBubble)
+		minimizeBubbleShadow.Name = "SoftShadow"
+		minimizeBubbleShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+		minimizeBubbleShadow.Position = UDim2.fromScale(0.5, 0.5)
+		minimizeBubbleShadow.Size = UDim2.new(1, 12, 1, 12)
+		minimizeBubbleShadow.BackgroundColor3 = Color3.fromRGB(0,0,0)
+		minimizeBubbleShadow.BackgroundTransparency = 0.72
+		minimizeBubbleShadow.BorderSizePixel = 0
+		minimizeBubbleShadow.ZIndex = 849
+		corner(minimizeBubbleShadow, 100)
+
+		minimizeBubbleGlow = Instance.new("Frame", minimizeBubble)
+		minimizeBubbleGlow.Name = "AccentGlow"
+		minimizeBubbleGlow.AnchorPoint = Vector2.new(0.5, 0.5)
+		minimizeBubbleGlow.Position = UDim2.fromScale(0.5, 0.5)
+		minimizeBubbleGlow.Size = UDim2.new(1, 6, 1, 6)
+		minimizeBubbleGlow.BackgroundColor3 = Library.Theme.Accent
+		minimizeBubbleGlow.BackgroundTransparency = 0.78
+		minimizeBubbleGlow.BorderSizePixel = 0
+		minimizeBubbleGlow.ZIndex = 849
+		corner(minimizeBubbleGlow, 100)
+		regAccent(minimizeBubbleGlow)
+
+		minimizeBubbleGradient = Instance.new("UIGradient", minimizeBubble)
+		minimizeBubbleGradient.Rotation = 90
+
+		minimizeBubbleStroke = stroke(minimizeBubble, Library.Theme.Accent, 2)
+
+		minimizeBubbleRing = Instance.new("Frame", minimizeBubble)
+		minimizeBubbleRing.Name = "OuterAccentRing"
+		minimizeBubbleRing.AnchorPoint = Vector2.new(0.5, 0.5)
+		minimizeBubbleRing.Position = UDim2.fromScale(0.5, 0.5)
+		minimizeBubbleRing.Size = UDim2.new(1, -8, 1, -8)
+		minimizeBubbleRing.BackgroundColor3 = Library.Theme.Accent
+		minimizeBubbleRing.BackgroundTransparency = 0.88
+		minimizeBubbleRing.BorderSizePixel = 0
+		minimizeBubbleRing.ZIndex = 851
+		corner(minimizeBubbleRing, 100)
+		regAccent(minimizeBubbleRing)
+
+		minimizeBubbleAccent = Instance.new("Frame", minimizeBubble)
+		minimizeBubbleAccent.Name = "TopAccentSheen"
+		minimizeBubbleAccent.AnchorPoint = Vector2.new(0.5, 0)
+		minimizeBubbleAccent.Position = UDim2.new(0.5, 0, 0, 6)
+		minimizeBubbleAccent.Size = UDim2.new(0, 28, 0, 4)
+		minimizeBubbleAccent.BackgroundColor3 = Library.Theme.Accent
+		minimizeBubbleAccent.BackgroundTransparency = 0.18
+		minimizeBubbleAccent.BorderSizePixel = 0
+		minimizeBubbleAccent.ZIndex = 853
+		corner(minimizeBubbleAccent, 100)
+		regAccent(minimizeBubbleAccent)
+
+		minimizeBubbleInner = Instance.new("Frame", minimizeBubble)
+		minimizeBubbleInner.Name = "InnerCircle"
+		minimizeBubbleInner.AnchorPoint = Vector2.new(0.5, 0.5)
+		minimizeBubbleInner.Position = UDim2.fromScale(0.5, 0.5)
+		minimizeBubbleInner.Size = UDim2.new(0, 42, 0, 42)
+		minimizeBubbleInner.BackgroundColor3 = Color3.fromRGB(18,18,22)
+		minimizeBubbleInner.BackgroundTransparency = 0.08
+		minimizeBubbleInner.BorderSizePixel = 0
+		minimizeBubbleInner.ZIndex = 852
+		corner(minimizeBubbleInner, 100)
+		local innerStroke = stroke(minimizeBubbleInner, Color3.fromRGB(55,55,65), 1)
+		innerStroke.Transparency = 0.15
+
+		-- Tiny Space-theme star specks. Hidden unless the Space theme is active.
+		for _, spec in ipairs({
+			{0.30, 0.28, 2}, {0.68, 0.33, 1}, {0.40, 0.73, 1}, {0.74, 0.66, 2}, {0.22, 0.58, 1}
+		}) do
+			local star = Instance.new("Frame", minimizeBubbleInner)
+			star.Name = "BubbleStar"
+			star.AnchorPoint = Vector2.new(0.5, 0.5)
+			star.Position = UDim2.fromScale(spec[1], spec[2])
+			star.Size = UDim2.new(0, spec[3], 0, spec[3])
+			star.BackgroundColor3 = Color3.fromRGB(235, 245, 255)
+			star.BackgroundTransparency = 0.12
+			star.BorderSizePixel = 0
+			star.ZIndex = 853
+			star.Visible = false
+			corner(star, 100)
+		end
+
+		-- Icon-free modern center mark: two soft accent pills + one muted base pill.
+		-- We keep minimizeBubbleIcon as an invisible compatibility placeholder so old scripts
+		-- calling Window:SetMinimizeIcon(...) do not error, but no emoji/text is rendered.
+		minimizeBubbleIcon = Instance.new("TextLabel", minimizeBubbleInner)
+		minimizeBubbleIcon.Name = "IconCompatibilityPlaceholder"
+		minimizeBubbleIcon.BackgroundTransparency = 1
+		minimizeBubbleIcon.BorderSizePixel = 0
+		minimizeBubbleIcon.Size = UDim2.new(0, 0, 0, 0)
+		minimizeBubbleIcon.Text = ""
+		minimizeBubbleIcon.Visible = false
+		minimizeBubbleIcon.ZIndex = 854
+
+		local markA = Instance.new("Frame", minimizeBubbleInner)
+		markA.Name = "ModernMarkAccentTop"
+		markA.AnchorPoint = Vector2.new(0.5, 0.5)
+		markA.Position = UDim2.new(0.5, 0, 0.40, 0)
+		markA.Size = UDim2.new(0, 27, 0, 5)
+		markA.BackgroundColor3 = Library.Theme.Accent
+		markA.BackgroundTransparency = 0.05
+		markA.BorderSizePixel = 0
+		markA.ZIndex = 854
+		corner(markA, 100)
+		regAccent(markA)
+
+		local markB = Instance.new("Frame", minimizeBubbleInner)
+		markB.Name = "ModernMarkMiddle"
+		markB.AnchorPoint = Vector2.new(0.5, 0.5)
+		markB.Position = UDim2.new(0.5, 0, 0.53, 0)
+		markB.Size = UDim2.new(0, 20, 0, 4)
+		markB.BackgroundColor3 = Color3.fromRGB(210, 214, 224)
+		markB.BackgroundTransparency = 0.16
+		markB.BorderSizePixel = 0
+		markB.ZIndex = 854
+		corner(markB, 100)
+
+		local markC = Instance.new("Frame", minimizeBubbleInner)
+		markC.Name = "ModernMarkAccentBottom"
+		markC.AnchorPoint = Vector2.new(0.5, 0.5)
+		markC.Position = UDim2.new(0.5, 0, 0.64, 0)
+		markC.Size = UDim2.new(0, 13, 0, 4)
+		markC.BackgroundColor3 = Library.Theme.Accent
+		markC.BackgroundTransparency = 0.18
+		markC.BorderSizePixel = 0
+		markC.ZIndex = 854
+		corner(markC, 100)
+		regAccent(markC)
+
+		minimizeBubbleDot = Instance.new("Frame", minimizeBubble)
+		minimizeBubbleDot.Name = "StatusDot"
+		minimizeBubbleDot.AnchorPoint = Vector2.new(1, 1)
+		minimizeBubbleDot.Position = UDim2.new(1, -7, 1, -7)
+		minimizeBubbleDot.Size = UDim2.new(0, 11, 0, 11)
+		minimizeBubbleDot.BackgroundColor3 = Library.Theme.Accent
+		minimizeBubbleDot.BorderSizePixel = 0
+		minimizeBubbleDot.ZIndex = 856
+		corner(minimizeBubbleDot, 100)
+		stroke(minimizeBubbleDot, Color3.fromRGB(10,10,10), 2)
+		regAccent(minimizeBubbleDot)
+
+		addTooltip(minimizeBubble, "Drag anywhere • click to restore")
+		track(minimizeBubble.InputBegan:Connect(function(i)
+			if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+				bubbleDragging = true
+				bubbleMoved = false
+				bubbleDragStart = i.Position
+				bubbleStartPos = minimizeBubble.Position
+			end
+		end))
+		track(UIS.InputChanged:Connect(function(i)
+			if not bubbleDragging or not minimizeBubble then return end
+			if i.UserInputType ~= Enum.UserInputType.MouseMovement and i.UserInputType ~= Enum.UserInputType.Touch then return end
+			local d = i.Position - bubbleDragStart
+			if math.abs(d.X) > 4 or math.abs(d.Y) > 4 then bubbleMoved = true end
+			minimizeBubble.Position = UDim2.new(
+				bubbleStartPos.X.Scale, bubbleStartPos.X.Offset + d.X,
+				bubbleStartPos.Y.Scale, bubbleStartPos.Y.Offset + d.Y
+			)
+		end))
+		track(UIS.InputEnded:Connect(function(i)
+			if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
+			if not bubbleDragging then return end
+			bubbleDragging = false
+			if not bubbleMoved then
+				if doMinimize then doMinimize(false) end
+			else
+				pcall(function() GUI:SaveConfig(true) end)
+			end
+		end))
+		minimizeBubble.MouseEnter:Connect(function()
+			tw(minimizeBubble, {BackgroundColor3 = Library.Theme.SurfaceHover})
+			if minimizeBubbleStroke then tw(minimizeBubbleStroke, {Color = Color3.fromRGB(255,255,255)}) end
+			if minimizeBubbleGlow then tw(minimizeBubbleGlow, {BackgroundTransparency = 0.62}) end
+			if minimizeBubbleInner then tw(minimizeBubbleInner, {Size = UDim2.new(0, 45, 0, 45)}) end
+			if minimizeBubbleAccent then tw(minimizeBubbleAccent, {Size = UDim2.new(0, 34, 0, 4)}) end
+		end)
+		minimizeBubble.MouseLeave:Connect(function()
+			tw(minimizeBubble, {BackgroundColor3 = Library.Theme.Surface})
+			if minimizeBubbleStroke then tw(minimizeBubbleStroke, {Color = Library.Theme.Accent}) end
+			if minimizeBubbleGlow then tw(minimizeBubbleGlow, {BackgroundTransparency = 0.78}) end
+			if minimizeBubbleInner then tw(minimizeBubbleInner, {Size = UDim2.new(0, 42, 0, 42)}) end
+			if minimizeBubbleAccent then tw(minimizeBubbleAccent, {Size = UDim2.new(0, 28, 0, 4)}) end
+		end)
+		_styleMinimizeBubble()
+		return minimizeBubble
+	end
+
+	local function _showMinimizeBubble(show)
+		local b = _createMinimizeBubble()
+		if show then
+			b.Visible = GUI._open ~= false
+			b.Size = UDim2.new(0, 48, 0, 48)
+			tw(b, {Size = UDim2.new(0, 62, 0, 62)}, TI_FAST)
 		else
-			_mainTween = tw(MainWrap,{Size=UDim2.new(0,sw,0,sh)},TI_SLOW,function()
-				Nav.Visible=true; Content.Visible=true
+			if not b.Visible then return end
+			tw(b, {Size = UDim2.new(0, 48, 0, 48)}, TI_FAST, function()
+				if b then b.Visible = false; b.Size = UDim2.new(0, 62, 0, 62) end
 			end)
 		end
 	end
 
+	local function _syncOpenVisibility()
+		if minimized then
+			MainWrap.Visible = false
+			if minimizeBubble then minimizeBubble.Visible = GUI._open ~= false end
+		else
+			MainWrap.Visible = GUI._open ~= false
+			if minimizeBubble then minimizeBubble.Visible = false end
+		end
+	end
+
+
+	local function _runTrackedPropertyRestores()
+		for i = #GUI._trackedProperties, 1, -1 do
+			local item = GUI._trackedProperties[i]
+			if item and item.object and item.property ~= nil then
+				pcall(function()
+					item.object[item.property] = item.value
+				end)
+			end
+		end
+		local character = LP and LP.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			for i = #GUI._trackedHumanoidProperties, 1, -1 do
+				local item = GUI._trackedHumanoidProperties[i]
+				if item and item.property ~= nil and item.value ~= nil then
+					pcall(function() humanoid[item.property] = item.value end)
+				end
+			end
+		end
+	end
+
+	local function _runTrackedInstanceCleanups()
+		for i = #GUI._trackedInstances, 1, -1 do
+			local item = GUI._trackedInstances[i]
+			local inst = item and item.instance
+			if inst then
+				local mode = tostring(item.mode or "destroy"):lower()
+				pcall(function()
+					if mode == "disable" then
+						if inst.Enabled ~= nil then inst.Enabled = false end
+					elseif mode == "hide" then
+						if inst.Visible ~= nil then inst.Visible = false end
+					else
+						if inst.Destroy then inst:Destroy() end
+					end
+				end)
+			end
+		end
+	end
+
+	local function _runRegisteredCleanups()
+		for i = #GUI._cleanupCallbacks, 1, -1 do
+			local item = GUI._cleanupCallbacks[i]
+			if item and type(item.callback) == "function" and not item.ran then
+				item.ran = true
+				pcall(item.callback)
+			end
+		end
+	end
+
+	local function _stopAllActivity()
+		if GUI._activityStopped then return end
+		GUI._activityStopped = true
+		_subLoop = false
+		keybindListening = false
+		if GUI._activeKeybind and GUI._activeKeybind._stopListening then
+			pcall(function() GUI._activeKeybind:_stopListening(true) end)
+		end
+		for _, control in ipairs(GUI._toggleControls or {}) do
+			if control and control._autoStopOnDestroy ~= false then
+				local ok, isOn = pcall(function() return control:Get() end)
+				if ok and isOn == true then
+					if control._stopForDestroy then
+						pcall(function() control:_stopForDestroy() end)
+					else
+						pcall(function() control:Set(false, true) end)
+						if control._callback then pcall(control._callback, false) end
+					end
+				end
+			end
+		end
+		_runTrackedPropertyRestores()
+		_runTrackedInstanceCleanups()
+		_runRegisteredCleanups()
+		pcall(function() if _ttFrame then _ttFrame.Visible = false end end)
+	end
+
+	doMinimize = function(forceState)
+		if _destroyed then return end
+		local target = (forceState == nil) and (not minimized) or (forceState == true)
+		if target == minimized then
+			_syncOpenVisibility()
+			return
+		end
+		local sw, sh = getScaledWindowSize()
+		minimized = target
+		if _mainTween then _mainTween:Cancel(); _mainTween = nil end
+		if minimized then
+			_createMinimizeBubble()
+			Nav.Visible=false; Content.Visible=false
+			MainWrap.Visible = GUI._open ~= false
+			_showMinimizeBubble(true)
+			_mainTween = tw(MainWrap,{Size=UDim2.new(0,sw,0,0)},TI_FAST,function()
+				MainWrap.Visible=false
+				if minimizeBubble then minimizeBubble.Visible = GUI._open ~= false end
+			end)
+		else
+			_showMinimizeBubble(false)
+			MainWrap.Visible = GUI._open ~= false
+			MainWrap.Size = UDim2.new(0, sw, 0, 0)
+			Nav.Visible=false; Content.Visible=false
+			_mainTween = tw(MainWrap,{Size=UDim2.new(0,sw,0,sh)},TI_SLOW,function()
+				if not minimized and not _destroyed then
+					Nav.Visible=true; Content.Visible=true
+				end
+			end)
+		end
+		pcall(function() GUI:SaveConfig(true) end)
+	end
+
 	function GUI:Destroy()
 		if _destroyed then return end
+		GUI._open = false
+		_stopAllActivity()
 		_destroyed=true; keybindListening=false
+		for _, fn in ipairs(GUI._destroyCallbacks or {}) do
+			pcall(fn)
+		end
 		for _,c in ipairs(_connections) do pcall(function() c:Disconnect() end) end
 		_connections={}
 		if _mainTween then _mainTween:Cancel(); _mainTween = nil end
+		if minimizeBubble then pcall(function() minimizeBubble:Destroy() end); minimizeBubble=nil end
+		if _ttFrame then pcall(function() _ttFrame.Visible=false end) end
 		local sw, sh = getScaledWindowSize()
 		if minimized then
 			minimized = false
@@ -1533,6 +2479,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	function GUI:SetAccent(color)
 		if typeof(color) ~= "Color3" then return end
 		applyAccentToRegistered(color)
+		_styleMinimizeBubble()
 		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.accent then pcall(GUI._cfgSyncCallbacks.accent, color) end
 		pcall(function() GUI:SaveConfig(true) end)
 	end
@@ -1546,7 +2493,252 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	function GUI:GetScale() return currentScale end
 	function GUI:ForceScaleRefresh()
 		applyWindowScale(false, minimized and 34 or nil)
+		if _resizeSnapEnabled then _applyResponsiveScale(true) end
 		return MainWrap.AbsoluteSize
+	end
+	function GUI:SetMiniVisible(state, silent)
+		-- The legacy separate top-right HUD is disabled unless explicitly enabled with floatingMiniUI=true/miniUI=true.
+		if not floatingMiniAllowed then
+			miniVisible = false
+			if miniFrame then miniFrame.Visible = false end
+			if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.miniVisible then pcall(GUI._cfgSyncCallbacks.miniVisible, false) end
+			return false
+		end
+		miniVisible = state == true
+		if miniFrame then miniFrame.Visible = miniVisible end
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.miniVisible then pcall(GUI._cfgSyncCallbacks.miniVisible, miniVisible) end
+		if not silent then pcall(function() GUI:SaveConfig(true) end) end
+		return miniVisible
+	end
+	function GUI:GetMiniVisible() return miniVisible == true end
+	function GUI:ToggleMiniHUD()
+		return GUI:SetMiniVisible(not miniVisible)
+	end
+	function GUI:SetMiniTitle(text)
+		if miniTitleLbl then miniTitleLbl.Text = tostring(text or "VENTURA"):upper() end
+	end
+	function GUI:GetFPS() return miniStats.fps or 0 end
+	function GUI:GetPing() return miniStats.ping or 0 end
+	function GUI:GetMiniHUD()
+		return miniFrame
+	end
+	function GUI:ResetMiniHUDPosition()
+		if miniFrame then miniFrame.Position = _miniClampPosition(UDim2.new(1, -206, 0, 14)) end
+		pcall(function() GUI:SaveConfig(true) end)
+	end
+	function GUI:SetWatermarkStatsVisible(state, silent)
+		-- Always-on top-left FPS / ping stats. The argument is kept only for API compatibility.
+		wmStatsVisible = true
+		_syncWatermarkStats()
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkStats then pcall(GUI._cfgSyncCallbacks.watermarkStats, true) end
+		if not silent then pcall(function() GUI:SaveConfig(true) end) end
+		return true
+	end
+	function GUI:GetWatermarkStatsVisible() return wmStatsVisible == true end
+	function GUI:SetWatermarkText(text)
+		wmBaseText = tostring(text or options.name or "VenturaUI")
+		_syncWatermarkStats()
+		pcall(function() GUI:SaveConfig(true) end)
+	end
+	function GUI:GetWatermarkText() return tostring(wmBaseText or options.watermark or options.name or "VenturaUI") end
+	function GUI:ResetWatermarkPosition()
+		if wmFrame then wmFrame.AnchorPoint = Vector2.new(1, 0); wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y) end
+		pcall(function() GUI:SaveConfig(true) end)
+	end
+	function GUI:OnDestroy(callback)
+		if type(callback) ~= "function" then return nil end
+		table.insert(GUI._destroyCallbacks, callback)
+		return function()
+			for i, fn in ipairs(GUI._destroyCallbacks) do
+				if fn == callback then table.remove(GUI._destroyCallbacks, i); break end
+			end
+		end
+	end
+	function GUI:OnReconnect(callback)
+		if type(callback) ~= "function" then return nil end
+		table.insert(GUI._reconnectCallbacks, callback)
+		return function()
+			for i, fn in ipairs(GUI._reconnectCallbacks) do
+				if fn == callback then table.remove(GUI._reconnectCallbacks, i); break end
+			end
+		end
+	end
+
+	function GUI:Reconnect(reason)
+		return _runReconnect(reason or "manual")
+	end
+
+	function GUI:SetReconnectOnRespawn(state)
+		GUI._reconnectEnabled = state ~= false
+		return GUI._reconnectEnabled
+	end
+
+	function GUI:GetReconnectOnRespawn()
+		return GUI._reconnectEnabled ~= false
+	end
+
+	function GUI:SetReconnectDelay(seconds)
+		GUI._reconnectDelay = math.clamp(tonumber(seconds) or GUI._reconnectDelay or 0.85, 0, 10)
+		return GUI._reconnectDelay
+	end
+
+	function GUI:GetReconnectDelay()
+		return GUI._reconnectDelay or 0.85
+	end
+
+	function GUI:BindToCharacter(callback, runNow)
+		local disconnect = GUI:OnReconnect(callback)
+		if runNow ~= false and type(callback) == "function" then
+			task.defer(function()
+				if _destroyed or GUI._activityStopped then return end
+				local character = LP.Character
+				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+				pcall(callback, character, humanoid, "initial")
+			end)
+		end
+		return disconnect
+	end
+
+	function GUI:ScheduleReconnect(reason, delayOverride)
+		_scheduleReconnect(reason or "manual", delayOverride)
+	end
+
+	function GUI:RegisterCleanup(callback, label)
+		if type(callback) ~= "function" then return nil end
+		local item = {callback = callback, label = tostring(label or "cleanup"), ran = false}
+		table.insert(GUI._cleanupCallbacks, item)
+		return function()
+			for i, v in ipairs(GUI._cleanupCallbacks) do
+				if v == item then table.remove(GUI._cleanupCallbacks, i); break end
+			end
+		end
+	end
+
+	function GUI:TrackProperty(object, property, restoreValue)
+		if object == nil or property == nil then return nil end
+		local value = restoreValue
+		if value == nil then
+			local ok, current = pcall(function() return object[property] end)
+			if ok then value = current end
+		end
+		local item = {object = object, property = property, value = value}
+		table.insert(GUI._trackedProperties, item)
+		return function()
+			for i, v in ipairs(GUI._trackedProperties) do
+				if v == item then table.remove(GUI._trackedProperties, i); break end
+			end
+		end
+	end
+
+	function GUI:TrackHumanoidProperty(property, restoreValue)
+		if property == nil then return nil end
+		local function currentHumanoid()
+			local character = LP and LP.Character
+			return character and character:FindFirstChildOfClass("Humanoid")
+		end
+		local value = restoreValue
+		if value == nil then
+			local h = currentHumanoid()
+			if h then
+				local ok, current = pcall(function() return h[property] end)
+				if ok then value = current end
+			end
+		end
+		local item = {property = property, value = value}
+		table.insert(GUI._trackedHumanoidProperties, item)
+		local cleanup = GUI:RegisterCleanup(function()
+			local h = currentHumanoid()
+			if h and item.value ~= nil then
+				pcall(function() h[property] = item.value end)
+			end
+		end, "Humanoid." .. tostring(property))
+		return function()
+			for i, v in ipairs(GUI._trackedHumanoidProperties) do
+				if v == item then table.remove(GUI._trackedHumanoidProperties, i); break end
+			end
+			if cleanup then cleanup() end
+		end
+	end
+
+	function GUI:TrackInstance(instance, mode)
+		if instance == nil then return nil end
+		local item = {instance = instance, mode = mode or "destroy"}
+		table.insert(GUI._trackedInstances, item)
+		return function()
+			for i, v in ipairs(GUI._trackedInstances) do
+				if v == item then table.remove(GUI._trackedInstances, i); break end
+			end
+		end
+	end
+
+	function GUI:TrackEffect(instance)
+		return GUI:TrackInstance(instance, "destroy")
+	end
+
+	function GUI:RestoreTrackedProperties()
+		_runTrackedPropertyRestores()
+		_runTrackedInstanceCleanups()
+		_runRegisteredCleanups()
+	end
+
+	function GUI:IsDestroyed() return _destroyed == true end
+	function GUI:ShouldRun() return not _destroyed and GUI._activityStopped ~= true end
+	function GUI:TrackConnection(conn)
+		if conn and type(conn.Disconnect) == "function" then track(conn) end
+		return conn
+	end
+	function GUI:StopActivity() _stopAllActivity() end
+	function GUI:Close() GUI:Destroy() end
+	function GUI:SetResponsiveScale(state)
+		-- Always-on responsive scaling. The argument is kept only for API compatibility.
+		_responsiveScaleEnabled = true
+		_applyResponsiveScale(true)
+		return true
+	end
+	function GUI:GetResponsiveScale() return _responsiveScaleEnabled == true end
+	function GUI:SetResizeSnapEnabled(state)
+		_resizeSnapEnabled = state ~= false
+		if _resizeSnapEnabled then _applyResponsiveScale(true) end
+		pcall(function() GUI:SaveConfig(true) end)
+		return _resizeSnapEnabled
+	end
+	function GUI:GetResizeSnapEnabled() return _resizeSnapEnabled == true end
+	function GUI:SetResizeSnapMode(mode)
+		mode = tostring(mode or "center"):lower()
+		if mode ~= "corner" and mode ~= "top-left" and mode ~= "topleft" then mode = "center" end
+		_resizeSnapMode = mode
+		_applyResponsiveScale(true)
+		pcall(function() GUI:SaveConfig(true) end)
+		return _resizeSnapMode
+	end
+	function GUI:GetResizeSnapMode() return _resizeSnapMode end
+	function GUI:SnapToVisibleArea(mode)
+		if mode then GUI:SetResizeSnapMode(mode) end
+		_applyResponsiveScale(true)
+		return MainWrap.Position
+	end
+	function GUI:SetOffscreenGrip(px)
+		-- Kept for old scripts. In 5.8, drag borders are removed, so this no longer clamps anything.
+		options.offscreenGrip = math.max(0, tonumber(px) or options.offscreenGrip or 0)
+		return options.offscreenGrip
+	end
+	function GUI:GetOffscreenGrip() return getOffscreenGrip(0) end
+	function GUI:SetDragOutMultiplier(multiplier)
+		options.dragOutMultiplier = math.clamp(tonumber(multiplier) or options.dragOutMultiplier or 1, 0.1, 5)
+		return options.dragOutMultiplier
+	end
+	function GUI:GetDragOutMultiplier() return getDragOutMultiplier() end
+	function GUI:SetDragBordersEnabled(state)
+		options.dragBounds = state == true
+		return options.dragBounds
+	end
+	function GUI:GetDragBordersEnabled() return options.dragBounds == true end
+	function GUI:SetMinimized(state) doMinimize(state == true); return minimized end
+	function GUI:IsMinimized() return minimized == true end
+	function GUI:GetMinimizeButton() return _createMinimizeBubble() end
+	function GUI:SetMinimizeIcon(icon)
+		options.minimizeBubbleIcon = tostring(icon or "")
+		if minimizeBubbleIcon then minimizeBubbleIcon.Text = _bubbleIconText() end
 	end
 	function GUI:GetVersion() return Library.Version end
 	function GUI:SetSubtitle(text) pcall(function() lSub.Text=tostring(text or "") end) end
@@ -1561,48 +2753,10 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	exitBtn.MouseButton1Click:Connect(function()
 		if _destroyed then return end
 		if options.onClose then pcall(options.onClose) end
-		-- Goodbye notification lives in its own ScreenGui so it survives GUI:Destroy()
-		task.spawn(function()
-			local byeDur = 3
-			local notifSG = Instance.new("ScreenGui",
-				RunService:IsStudio() and LP:WaitForChild("PlayerGui") or CoreGui)
-			notifSG.Name = "VenturaUI_Goodbye"
-			notifSG.IgnoreGuiInset = true
-			notifSG.DisplayOrder = 1000
-			notifSG.ResetOnSpawn = false
-			local NW, NH, NR, NB = 220, 56, 14, 14
-			local card = Instance.new("Frame", notifSG)
-			card.Size = UDim2.new(0, NW, 0, NH)
-			card.BackgroundColor3 = Library.Theme.Surface
-			card.BorderSizePixel = 0
-			card.AnchorPoint = Vector2.new(0, 1)
-			card.Position = UDim2.new(1, NW + NR + 40, 1, -NB)
-			card.ZIndex = 600
-			corner(card, 6); stroke(card, Library.Theme.Border)
-			local acc = Instance.new("Frame", card)
-			acc.Size = UDim2.new(0,3,1,0); acc.BackgroundColor3 = Library.Theme.Accent
-			acc.BorderSizePixel = 0; acc.ZIndex = 601; corner(acc, 2)
-			local pb = Instance.new("Frame", card)
-			pb.Size = UDim2.new(1,0,0,2); pb.Position = UDim2.new(0,0,1,-2)
-			pb.BackgroundColor3 = Library.Theme.Border; pb.BorderSizePixel = 0; pb.ZIndex = 601
-			local pf = Instance.new("Frame", pb)
-			pf.Size = UDim2.new(1,0,1,0); pf.BackgroundColor3 = Library.Theme.Accent
-			pf.BorderSizePixel = 0; pf.ZIndex = 602
-			local t1 = lbl(card, "Ventura UI", 12, Library.Theme.TextPrimary,
-				Font.new("rbxasset://fonts/families/Ubuntu.json", Enum.FontWeight.Bold))
-			t1.Size = UDim2.new(1,-18,0,16); t1.Position = UDim2.new(0,12,0,8); t1.ZIndex = 601
-			local t2 = lbl(card, "Thanks for using Ventura UI — see you! 👋", 11, Library.Theme.TextSecondary)
-			t2.Size = UDim2.new(1,-18,0,24); t2.Position = UDim2.new(0,12,0,26)
-			t2.TextWrapped = true; t2.TextYAlignment = Enum.TextYAlignment.Top; t2.ZIndex = 601
-			tw(card, { Position = UDim2.new(1, -(NW+NR), 1, -NB) }, TI_FAST)
-			tw(pf, { Size = UDim2.new(0,0,1,0) }, TweenInfo.new(byeDur, Enum.EasingStyle.Linear))
-			task.delay(byeDur, function()
-				tw(card, { Position = UDim2.new(1, NW+NR+40, 1, -NB),
-					BackgroundTransparency = 1 }, TI_FAST, function()
-					pcall(function() notifSG:Destroy() end)
-				end)
-			end)
-		end)
+		-- 5.9: no delayed goodbye task by default; close should stop activity immediately.
+		if options.goodbyeNotification == true then
+			pcall(function() GUI.notify("Ventura UI", "Closing...", 0.8, "info") end)
+		end
 		GUI:Destroy()
 	end)
 
@@ -1627,7 +2781,8 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 
 		if gpe or keybindListening then return end
 		if input.KeyCode==keys.toggle then
-			GUI._open=not GUI._open; MainWrap.Visible=GUI._open
+			GUI._open=not GUI._open
+			_syncOpenVisibility()
 		elseif input.KeyCode==keys.minimize and GUI._open then
 			doMinimize()
 		end
@@ -1649,12 +2804,16 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	track(UIS.InputChanged:Connect(function(i)
 		if not dragging then return end
 		if i.UserInputType~=Enum.UserInputType.MouseMovement and i.UserInputType~=Enum.UserInputType.Touch then return end
-		local d   = i.Position - dragStart
-		local vps = workspace.CurrentCamera.ViewportSize
-		local sw, fullH = getScaledWindowSize()
-		local sh  = minimized and 34 or fullH
-		local newX = math.clamp(startPos.X.Offset+d.X, sw/2, vps.X-sw/2)
-		local newY = math.clamp(startPos.Y.Offset+d.Y, sh/2, vps.Y-sh/2)
+		local d   = (i.Position - dragStart) * getDragOutMultiplier()
+		local newX = startPos.X.Offset + d.X
+		local newY = startPos.Y.Offset + d.Y
+		if _dragBordersEnabled() then
+			local vps = workspace.CurrentCamera.ViewportSize
+			local sw, fullH = getScaledWindowSize()
+			local sh  = minimized and 34 or fullH
+			newX = math.clamp(newX, sw/2, vps.X - sw/2)
+			newY = math.clamp(newY, sh/2, vps.Y - sh/2)
+		end
 		MainWrap.Position = UDim2.new(0,newX,0,newY)
 	end))
 	track(UIS.InputEnded:Connect(function(i)
@@ -2205,7 +3364,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			arr.BackgroundTransparency=1; arr.AnchorPoint=Vector2.new(0.5,0.5)
 			arr.Image="rbxassetid://12974428978"; arr.ImageColor3=Library.Theme.TextSecondary
 			arr.Size=UDim2.new(0,11,0,11); arr.Position=UDim2.fromScale(0.5,0.5); arr.Rotation=-90
-			addTooltip(Btn.frame,opts.tooltip)
+			addTooltip(Btn.frame,(opts.tooltip ~= "" and opts.tooltip or opts.description))
 
 			local function setDisabled(v)
 				Btn.Disabled = v == true
@@ -2249,7 +3408,8 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			opts=validate({name="Toggle",description="",tooltip="",default=false,callback=function()end,onText="ON",offText="OFF"},opts)
 			local hasDesc=tostring(opts.description or "") ~= ""
 			local h=hasDesc and 64 or 50
-			local Toggle={Value=opts.default == true}
+			local Toggle={Value=opts.default == true, _callback=opts.callback, _autoStopOnDestroy=opts.autoStopOnDestroy ~= false}
+			table.insert(GUI._toggleControls, Toggle)
 			Toggle.frame=base("Toggle",h); pad(Toggle.frame,0,16,0,16)
 			local bStroke=Toggle.frame:FindFirstChildOfClass("UIStroke")
 			local nl,dl=labelPair(Toggle.frame,opts.name,opts.description,130,hasDesc and 10 or 16)
@@ -2305,8 +3465,14 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 				render(v)
 				if not silent then pcall(opts.callback, Toggle.Value); pcall(function() GUI:SaveConfig() end) end
 			end
+			function Toggle:_stopForDestroy()
+				if Toggle.Value ~= true then return end
+				render(false, true)
+				pcall(opts.callback, false)
+			end
 			function Toggle:Get() return Toggle.Value end
 			_registerConfigControl(Toggle, opts, "toggle")
+			_registerReconnectControl(Toggle, opts, "toggle")
 			return Toggle
 		end
 		function Tab:Slider(opts)
@@ -2478,6 +3644,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			function Slider:SetFormatter(fn) if type(fn)=="function" then opts.valueFormatter=fn; setVisual(Slider.Value) end end
 			render(Slider.Value,true)
 			_registerConfigControl(Slider, opts, "slider")
+			_registerReconnectControl(Slider, opts, "slider")
 			return Slider
 		end
 		function Tab:Dropdown(opts)
@@ -2593,6 +3760,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 				selLbl.Text=labelText(); refresh()
 			end
 			_registerConfigControl(DD, opts, opts.multi and "multidropdown" or "dropdown")
+			_registerReconnectControl(DD, opts, opts.multi and "multidropdown" or "dropdown")
 			return DD
 		end
 
@@ -2712,6 +3880,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			function DD:SetSearch(text) searchBox.Text=tostring(text or "") end
 			function DD:ClearSearch() searchBox.Text="" end
 			_registerConfigControl(DD, opts, opts.multi and "searchmultidropdown" or "searchdropdown")
+			_registerReconnectControl(DD, opts, opts.multi and "searchmultidropdown" or "searchdropdown")
 			return DD
 		end
 		Tab.SearchableDropdown = Tab.SearchDropdown
@@ -2772,6 +3941,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			function TIc:Set(v, silent) box.Text=tostring(v); commit(silent) end
 			function TIc:Get() return TIc.Value end
 			_registerConfigControl(TIc, opts, opts.numeric and "numberinput" or "textinput")
+			_registerReconnectControl(TIc, opts, opts.numeric and "numberinput" or "textinput")
 			return TIc
 		end
 		function Tab:ColorPicker(opts)
@@ -2861,6 +4031,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			function CP:Get() return CP.Value end
 			rebuild(true)
 			_registerConfigControl(CP, opts, "color")
+			_registerReconnectControl(CP, opts, "color")
 			return CP
 		end
 
@@ -2906,6 +4077,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			end
 			function KB:Get() return KB.Value end
 			_registerConfigControl(KB, opts, "keybind")
+			_registerReconnectControl(KB, opts, "keybind")
 			return KB
 		end
 		function Tab:Warning(opts)
@@ -3066,6 +4238,9 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	local _cfgBaseName = options.name:gsub("[^%w%-%_]", "_")
 	local _cfgProfileFolder = _cfgFolder .. "/" .. _cfgBaseName
 	local _cfgProfileIndexFile = _cfgProfileFolder .. "/profiles.index"
+	local _cfgAutoLoadFile = _cfgProfileFolder .. "/autoload.profile"
+	local _cfgAutoLoadEnabledFile = _cfgProfileFolder .. "/autoload.enabled"
+	local _cfgProfileDeletedFile = _cfgProfileFolder .. "/profiles.deleted"
 
 	local function _profileSanitize(name)
 		name = _trim(name or "")
@@ -3080,7 +4255,9 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	end
 
 	local _cfgProfile = _profileSanitize(options.profile or options.configProfile or "Default")
+	local _explicitProfileProvided = options.profile ~= nil or options.configProfile ~= nil
 	local _cfgFile = _cfgProfileFolder .. "/" .. _profileFileName(_cfgProfile)
+	local _autoLoadEnabled = (options.autoLoad ~= false and options.autoLoadConfig ~= false and options.configAutoLoad ~= false)
 
 	local function _setConfigProfileInternal(name)
 		_cfgProfile = _profileSanitize(name)
@@ -3095,11 +4272,107 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		return true
 	end
 
+	local function _readPlainFile(path)
+		if not hasFileAPI() then return nil end
+		local okExists, exists = pcall(isfile, path)
+		if not okExists or not exists then return nil end
+		local ok, raw = pcall(readfile, path)
+		if not ok or raw == nil then return nil end
+		return tostring(raw)
+	end
+
+	local function _writePlainFile(path, value)
+		if not hasFileAPI() then return false end
+		_ensureConfigFolders()
+		local ok, err = pcall(function() writefile(path, tostring(value or "")) end)
+		if not ok then warn("[VenturaUI] Config meta save failed: " .. tostring(err)) end
+		return ok
+	end
+
+
+	local function _readDeletedProfiles()
+		local deleted = {}
+		local raw = _readPlainFile(_cfgProfileDeletedFile)
+		if raw and raw ~= "" then
+			for line in (raw .. "\n"):gmatch("([^\n]*)\n") do
+				local name = _profileSanitize(_cfgUnesc(_trim(line)))
+				if name ~= "" and name:lower() ~= "default" then
+					deleted[name:lower()] = name
+				end
+			end
+		end
+		return deleted
+	end
+
+	local function _writeDeletedProfiles(deleted)
+		if not hasFileAPI() then return false end
+		local lines = {}
+		local seen = {}
+		for _, name in pairs(deleted or {}) do
+			name = _profileSanitize(name)
+			local key = name:lower()
+			if name ~= "" and key ~= "default" and not seen[key] then
+				seen[key] = true
+				table.insert(lines, _cfgEsc(name))
+			end
+		end
+		table.sort(lines, function(a, b) return a:lower() < b:lower() end)
+		return _writePlainFile(_cfgProfileDeletedFile, table.concat(lines, "\n"))
+	end
+
+	local function _isProfileDeleted(name)
+		name = _profileSanitize(name)
+		if name:lower() == "default" then return false end
+		return _readDeletedProfiles()[name:lower()] ~= nil
+	end
+
+	local function _markProfileDeleted(name)
+		name = _profileSanitize(name)
+		if name:lower() == "default" then return false end
+		local deleted = _readDeletedProfiles()
+		deleted[name:lower()] = name
+		return _writeDeletedProfiles(deleted)
+	end
+
+	local function _unmarkProfileDeleted(name)
+		name = _profileSanitize(name)
+		if name:lower() == "default" then return true end
+		local deleted = _readDeletedProfiles()
+		deleted[name:lower()] = nil
+		return _writeDeletedProfiles(deleted)
+	end
+
+	local function _readAutoLoadEnabled()
+		local raw = _readPlainFile(_cfgAutoLoadEnabledFile)
+		if raw == nil or raw == "" then return _autoLoadEnabled end
+		raw = _trim(raw):lower()
+		return raw == "true" or raw == "1" or raw == "yes" or raw == "on"
+	end
+
+	local function _writeAutoLoadEnabled(enabled)
+		_autoLoadEnabled = enabled == true
+		return _writePlainFile(_cfgAutoLoadEnabledFile, _autoLoadEnabled and "true" or "false")
+	end
+
+	local function _readAutoLoadProfile()
+		if not _readAutoLoadEnabled() then return nil end
+		local raw = _readPlainFile(_cfgAutoLoadFile)
+		if raw == nil or raw == "" then return nil end
+		return _profileSanitize(_cfgUnesc(_trim(raw)))
+	end
+
+	local function _writeAutoLoadProfile(profile)
+		if not _autoLoadEnabled then return false end
+		return _writePlainFile(_cfgAutoLoadFile, _cfgEsc(_profileSanitize(profile or _cfgProfile)))
+	end
+
 	local function _uniqueSortedProfiles(list)
+		local deleted = _readDeletedProfiles()
 		local seen, out = {}, {}
 		local function add(name)
 			name = _profileSanitize(name)
 			local key = name:lower()
+			if key ~= "default" and deleted[key] then return end
 			if not seen[key] then seen[key] = true; table.insert(out, name) end
 		end
 		add("Default")
@@ -3148,18 +4421,90 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	end
 
 	local function _addProfileToIndex(name)
+		name = _profileSanitize(name)
+		_unmarkProfileDeleted(name)
 		local profiles = _readProfileIndex()
-		table.insert(profiles, _profileSanitize(name))
+		table.insert(profiles, name)
 		_writeProfileIndex(profiles)
 		return _uniqueSortedProfiles(profiles)
 	end
 
-	local THEMES = Library.Themes
+	-- Auto-load the last selected/saved profile on startup unless the script explicitly picked one.
+	_autoLoadEnabled = _readAutoLoadEnabled()
+	if _autoLoadEnabled and not _explicitProfileProvided then
+		local autoProfile = _readAutoLoadProfile()
+		if autoProfile then
+			_setConfigProfileInternal(autoProfile)
+		end
+	end
 
-	local function _applyTheme(val)
-		local t = THEMES[val]; if not t then return false end
+
+	
+	function GUI:_RefreshThemeVisuals()
+		local accent = Library.Theme.Accent
+		local surface = Library.Theme.Surface
+		local hover = Library.Theme.SurfaceHover
+		local background = Library.Theme.Background
+		local border = Library.Theme.Border
+		local textPrimary = Library.Theme.TextPrimary
+		local textSecondary = Library.Theme.TextSecondary
+		local textDisabled = Library.Theme.TextDisabled
+		local surfaceCards = {
+			Button=true, Toggle=true, Slider=true, Dropdown=true, SearchDropdown=true,
+			Paragraph=true, ProgressBar=true, ColorPicker=true, Keybind=true, TextInput=true,
+			InputBox=true, DropdownSearchBox=true, LoaderPanel=true, UserBox=true, FloatingMiniHUD=true,
+			TextButton=true,
+		}
+		local bgCards = {
+			DropdownValue=true, SearchValue=true, DropdownList=true, SearchDropdownList=true,
+			SliderTrack=true, SliderValuePill=true, SliderThumbCore=true, TogglePill=true, InputBox=true,
+			DDHeader=true, ResizeHandle=true, ThemePreview=true, AccentPreviewBox=true,
+		}
+		for _, obj in ipairs(SG:GetDescendants()) do
+			pcall(function()
+				local n = obj.Name
+				if obj:IsA("UIStroke") then
+					if obj:GetAttribute("VenturaAccent") == true then
+						obj.Color = accent
+					else
+						obj.Color = border
+					end
+				elseif obj:IsA("Frame") or obj:IsA("TextButton") then
+					if obj:IsA("TextButton") and obj.BackgroundTransparency < 0.95 and n ~= "MinimizeRestoreCircle" then obj.BackgroundColor3 = surface end
+					if surfaceCards[n] then obj.BackgroundColor3 = surface end
+					if bgCards[n] then obj.BackgroundColor3 = background end
+					if n == "TogglePill" then
+						obj.BackgroundColor3 = obj:GetAttribute("VenturaOn") == true and accent or background
+					end
+					if n == "SliderFill" or n == "SliderThumbGlow" or n == "TopAccentSheen" or n == "OuterAccentRing" or n == "StatusDot" or n:find("Accent") then
+						if obj:GetAttribute("VenturaNoTheme") ~= true then obj.BackgroundColor3 = accent end
+					end
+				elseif obj:IsA("TextLabel") or obj:IsA("TextBox") then
+					if n == "ControlTitle" or n == "ButtonTitle" or n == "ParagraphTitle" or n == "SliderValueText" or n == "TextBox" then
+						obj.TextColor3 = textPrimary
+					elseif n == "ControlDescription" or n == "ButtonDescription" or n == "ParagraphBody" or n == "MiniTitle" then
+						obj.TextColor3 = textSecondary
+					elseif n == "StateText" then
+						obj.TextColor3 = textSecondary
+					end
+					if obj:IsA("TextBox") then obj.PlaceholderColor3 = textDisabled end
+				elseif obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+					if n:find("Icon") or n:find("Arrow") then obj.ImageColor3 = textSecondary end
+				end
+			end)
+		end
+		applyAccentToRegistered(accent)
+	end
+
+	function GUI:_applyTheme(val)
+		local t = Library.Themes[val]; if not t then return false end
+		GUI._savedTheme = val
 		for k,v in pairs(t) do
-			if k ~= "UserBox" and typeof(v) == "Color3" then Library.Theme[k] = v end
+			if k ~= "UserBox" and k ~= "Accent" and typeof(v) == "Color3" then Library.Theme[k] = v end
+		end
+		_setSpaceBackground(t.Stars == true or tostring(val) == "Space")
+		if typeof(t.Accent) == "Color3" then
+			applyAccentToRegistered(t.Accent)
 		end
 		local surfaceNames = {Button=true, Toggle=true, Slider=true, Dropdown=true, Paragraph=true, ProgressBar=true, ColorPicker=true, Keybind=true, TextInput=true, Warning=false, Info=false, Success=false}
 		local bgNames = {DDHeader=true, ResizeHandle=true, SliderValuePill=true, DropdownValue=true, DropdownList=true, SliderTrack=true}
@@ -3176,6 +4521,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 				end
 			end)
 		end
+		GUI:_RefreshThemeVisuals()
 		tw(Main,    { BackgroundColor3 = Library.Theme.Background }, TI_SLOW)
 		tw(Nav,     { BackgroundColor3 = Library.Theme.Nav }, TI_SLOW)
 		tw(Topbar,  { BackgroundColor3 = Library.Theme.Topbar }, TI_SLOW)
@@ -3183,13 +4529,14 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		tw(userSep, { BackgroundColor3 = Library.Theme.Border }, TI_SLOW)
 		tw(searchBar, { BackgroundColor3 = Library.Theme.Surface }, TI_SLOW)
 		tw(_mainStroke, { Color = Library.Theme.Border }, TI_SLOW)
+		_styleMiniHUD()
+		_styleMinimizeBubble()
 		for _, p in ipairs(navPatches) do tw(p, { BackgroundColor3 = Library.Theme.Nav }, TI_SLOW) end
-		GUI._savedTheme = val
 		return true
 	end
 
 	function GUI:SetTheme(name, silent)
-		if _applyTheme(name) then
+		if GUI:_applyTheme(name) then
 			if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.theme then pcall(GUI._cfgSyncCallbacks.theme, name) end
 			if not silent then pcall(function() GUI:SaveConfig(true) end) end
 			return true
@@ -3199,7 +4546,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	function GUI:GetTheme() return GUI._savedTheme or "Dark" end
 	function GUI:GetThemes()
 		local names = {}
-		for name in pairs(THEMES) do table.insert(names, name) end
+		for name in pairs(Library.Themes) do table.insert(names, name) end
 		table.sort(names)
 		return names
 	end
@@ -3215,11 +4562,11 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		return false
 	end
 
-	local function _c3ToHex(c)
+	function GUI:_c3ToHex(c)
 		return string.format("%02X%02X%02X",
 			math.floor(c.R*255+0.5), math.floor(c.G*255+0.5), math.floor(c.B*255+0.5))
 	end
-	local function _hexToC3(h)
+	function GUI:_hexToC3(h)
 		h = (h or ""):gsub("#","")
 		if #h < 6 then return Library.Theme.Accent end
 		return Color3.fromRGB(
@@ -3227,7 +4574,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			tonumber(h:sub(3,4),16) or 0,
 			tonumber(h:sub(5,6),16) or 0)
 	end
-	local function _encodeConfig(t)
+	function GUI:_encodeConfig(t)
 		local lines = {}
 		for k,v in pairs(t) do
 			if type(v) == "string" then
@@ -3239,7 +4586,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		table.sort(lines)
 		return table.concat(lines, "\n")
 	end
-	local function _decodeConfig(s)
+	function GUI:_decodeConfig(s)
 		local t = {}
 		for line in (s.."\n"):gmatch("([^\n]*)\n") do
 			local k, v = line:match("^([^=]+)=(.*)$")
@@ -3254,11 +4601,11 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		return t
 	end
 
-	local _saveQueued = false
-	local function _configPayload()
+	GUI._saveQueued = false
+	function GUI:_configPayload()
 		local payload = {
 			profile   = _cfgEsc(_cfgProfile),
-			accent    = _c3ToHex(Library.Theme.Accent),
+			accent    = GUI:_c3ToHex(Library.Theme.Accent),
 			theme     = GUI._savedTheme or options.theme or "Dark",
 			scale     = currentScale,
 			winW      = math.floor(winW),
@@ -3267,6 +4614,20 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			renderH   = math.floor((MainWrap and MainWrap.AbsoluteSize.Y > 0) and MainWrap.AbsoluteSize.Y or select(2, getScaledWindowSize())),
 			toggleKey = keys.toggle.Name,
 			minKey    = keys.minimize.Name,
+			miniVisible = floatingMiniAllowed and miniVisible == true or false,
+			miniX = (floatingMiniAllowed and miniFrame) and miniFrame.Position.X.Offset or 0,
+			miniY = (floatingMiniAllowed and miniFrame) and miniFrame.Position.Y.Offset or 0,
+			watermarkStatsVisible = wmStatsVisible == true,
+			watermarkX = wmFrame and wmFrame.Position.X.Offset or WM_DEFAULT_X,
+			watermarkY = wmFrame and wmFrame.Position.Y.Offset or WM_DEFAULT_Y,
+			watermarkScaleX = wmFrame and wmFrame.Position.X.Scale or 1,
+			watermarkScaleY = wmFrame and wmFrame.Position.Y.Scale or 0,
+			minimizeBubbleX = minimizeBubble and minimizeBubble.Position.X.Offset or 18,
+			minimizeBubbleY = minimizeBubble and minimizeBubble.Position.Y.Offset or 78,
+			responsiveScale = true,
+			resizeSnap = _resizeSnapEnabled == true,
+			resizeSnapMode = _resizeSnapMode,
+			dragBounds = options.dragBounds == true,
 		}
 		for id, control in pairs(GUI._configControls or {}) do
 			if control and type(control.Get) == "function" then
@@ -3274,7 +4635,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 				if ok then payload[_cfgKey(id)] = _cfgEncodeValue(value) end
 			end
 		end
-		return _encodeConfig(payload)
+		return GUI:_encodeConfig(payload)
 	end
 
 	function GUI:SaveConfig(force, profileName)
@@ -3285,14 +4646,16 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			warn("[VenturaUI] SaveConfig skipped: executor does not support writefile/readfile/isfile/isfolder/makefolder.")
 			return false
 		end
-		if _saveQueued and not force then return true end
-		_saveQueued = true
+		if GUI._saveQueued and not force then return true end
+		GUI._saveQueued = true
 		local function writeNow()
-			_saveQueued = false
+			GUI._saveQueued = false
+			if _destroyed then return false end
 			local ok, err = pcall(function()
 				_ensureConfigFolders()
 				_addProfileToIndex(_cfgProfile)
-				writefile(_cfgFile, _configPayload())
+				writefile(_cfgFile, GUI:_configPayload())
+				_writeAutoLoadProfile(_cfgProfile)
 			end)
 			if not ok then warn("[VenturaUI] SaveConfig failed: " .. tostring(err)) end
 			return ok
@@ -3304,6 +4667,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 
 	function GUI:LoadConfig(profileName)
 		if profileName then _setConfigProfileInternal(profileName) end
+		if _isProfileDeleted(_cfgProfile) then return nil end
 		if not hasFileAPI() then return nil end
 		local targetFile = _cfgFile
 		local okExists, exists = pcall(isfile, targetFile)
@@ -3316,7 +4680,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		if not okExists or not exists then return nil end
 		local ok, raw = pcall(readfile, targetFile)
 		if not ok or not raw or raw == "" then return nil end
-		local ok2, data = pcall(_decodeConfig, raw)
+		local ok2, data = pcall(function() return GUI:_decodeConfig(raw) end)
 		if not ok2 or not data or not next(data) then return nil end
 		return data
 	end
@@ -3333,9 +4697,32 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		return _readProfileIndex()
 	end
 
+	function GUI:RefreshConfigProfiles()
+		return _readProfileIndex()
+	end
+
+	function GUI:GetAutoLoad()
+		return _readAutoLoadEnabled()
+	end
+
+	function GUI:SetAutoLoad(enabled)
+		return _writeAutoLoadEnabled(enabled == true)
+	end
+
+	function GUI:GetAutoLoadProfile()
+		return _readAutoLoadProfile() or _cfgProfile
+	end
+
+	function GUI:SetAutoLoadProfile(profileName)
+		local profile = _profileSanitize(profileName or _cfgProfile)
+		_addProfileToIndex(profile)
+		return _writeAutoLoadProfile(profile)
+	end
+
 	function GUI:SetConfigProfile(profileName, loadAfter)
 		local profile = _setConfigProfileInternal(profileName)
 		_addProfileToIndex(profile)
+		_writeAutoLoadProfile(profile)
 		if loadAfter == true then
 			local data = GUI:LoadConfig(profile)
 			if data then GUI:ApplyConfig(data); return true, data end
@@ -3346,29 +4733,83 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 
 	function GUI:SaveProfile(profileName)
 		if profileName then _setConfigProfileInternal(profileName) end
+		_addProfileToIndex(_cfgProfile)
+		_writeAutoLoadProfile(_cfgProfile)
 		return GUI:SaveConfig(true)
 	end
 
 	function GUI:LoadProfile(profileName)
 		local data = GUI:LoadConfig(profileName)
-		if data then GUI:ApplyConfig(data); return true, data end
+		if data then
+			_addProfileToIndex(_cfgProfile)
+			_writeAutoLoadProfile(_cfgProfile)
+			GUI:ApplyConfig(data)
+			return true, data
+		end
 		return false, nil
 	end
 
+	function GUI:_writeProfileIndexExact(list)
+		if not hasFileAPI() then return false end
+		_ensureConfigFolders()
+		local seen, lines = {}, {}
+		local deleted = _readDeletedProfiles()
+		local function add(name)
+			name = _profileSanitize(name)
+			local key = name:lower()
+			if key ~= "default" and deleted[key] then return end
+			if not seen[key] then
+				seen[key] = true
+				table.insert(lines, _cfgEsc(name))
+			end
+		end
+		add("Default")
+		for _, name in ipairs(list or {}) do add(name) end
+		table.sort(lines, function(a,b) return a:lower() < b:lower() end)
+		local ok, err = pcall(function() writefile(_cfgProfileIndexFile, table.concat(lines, "\n")) end)
+		if not ok then warn("[VenturaUI] Profile index save failed: " .. tostring(err)) end
+		return ok
+	end
+
+	-- Deletes only the selected profile. It never deletes the profile folder or other config files.
+	-- If an executor does not support delfile(), the profile is hidden with a tombstone so listfiles()
+	-- cannot make it reappear or block later profile loads.
 	function GUI:DeleteProfile(profileName)
 		local profile = _profileSanitize(profileName or _cfgProfile)
-		local file = _cfgProfileFolder .. "/" .. _profileFileName(profile)
-		local ok = false
-		pcall(function()
-			if type(delfile) == "function" and isfile(file) then delfile(file); ok = true end
-		end)
-		if _cfgProfile:lower() == profile:lower() then _setConfigProfileInternal("Default") end
+		if profile:lower() == "default" then
+			return false, "Default profile cannot be deleted"
+		end
+
+		_markProfileDeleted(profile)
+
+		local targetFile = _cfgProfileFolder .. "/" .. _profileFileName(profile)
+		local deletedFile = false
+		if hasFileAPI() then
+			pcall(function()
+				if type(delfile) == "function" and isfile(targetFile) then
+					delfile(targetFile)
+					deletedFile = true
+				end
+			end)
+		end
+
 		local keep = {}
 		for _, name in ipairs(_readProfileIndex()) do
-			if name:lower() ~= profile:lower() then table.insert(keep, name) end
+			if name:lower() ~= profile:lower() then
+				table.insert(keep, name)
+			end
 		end
-		_writeProfileIndex(keep)
-		return ok
+		GUI:_writeProfileIndexExact(keep)
+
+		if (_readAutoLoadProfile() or ""):lower() == profile:lower() then
+			_writePlainFile(_cfgAutoLoadFile, _cfgEsc("Default"))
+		end
+		if _cfgProfile:lower() == profile:lower() then
+			_setConfigProfileInternal("Default")
+			_writeAutoLoadProfile("Default")
+		end
+
+		return true, deletedFile and "deleted profile file" or "hidden deleted profile"
 	end
 
 	GUI._cfgSyncCallbacks = {}
@@ -3389,12 +4830,12 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 
 	function GUI:ApplyConfig(data)
 		if not data then return end
-		if data.theme and THEMES[data.theme] then
-			_applyTheme(data.theme)
+		if data.theme and Library.Themes[data.theme] then
+			GUI:_applyTheme(data.theme)
 			if GUI._cfgSyncCallbacks.theme then pcall(GUI._cfgSyncCallbacks.theme, data.theme) end
 		end
 		if data.accent then
-			local c = _hexToC3(data.accent)
+			local c = GUI:_hexToC3(data.accent)
 			applyAccentToRegistered(c)
 			if GUI._cfgSyncCallbacks.accent then pcall(GUI._cfgSyncCallbacks.accent, c) end
 		end
@@ -3412,8 +4853,17 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		end
 		local sw, sh = applyWindowScale(false, minimized and 34 or nil)
 		MainWrap.Size = UDim2.new(0, sw, 0, minimized and 34 or sh)
-		task.defer(function() if not _destroyed then applyWindowScale(false, minimized and 34 or nil) end end)
+		task.defer(function() if not _destroyed then applyWindowScale(false, minimized and 34 or nil); _applyResponsiveScale(true) end end)
 		if GUI._cfgSyncCallbacks.scale then pcall(GUI._cfgSyncCallbacks.scale, currentScale) end
+		-- 5.12+: keep responsive scaling on even if an older config saved it as false.
+		_responsiveScaleEnabled = true
+		if GUI._cfgSyncCallbacks.responsiveScale then pcall(GUI._cfgSyncCallbacks.responsiveScale, true) end
+		_resizeSnapEnabled = data.resizeSnap ~= false
+		_resizeSnapMode = tostring(data.resizeSnapMode or _resizeSnapMode or "center"):lower()
+		if GUI._cfgSyncCallbacks.resizeSnap then pcall(GUI._cfgSyncCallbacks.resizeSnap, _resizeSnapEnabled) end
+		if data.dragBounds ~= nil then
+			options.dragBounds = data.dragBounds == true
+		end
 		if data.toggleKey then
 			local ok, k = pcall(function() return Enum.KeyCode[data.toggleKey] end)
 			if ok and k and k ~= Enum.KeyCode.Unknown then keys.toggle = k end
@@ -3421,6 +4871,37 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		if data.minKey then
 			local ok, k = pcall(function() return Enum.KeyCode[data.minKey] end)
 			if ok and k and k ~= Enum.KeyCode.Unknown then keys.minimize = k end
+		end
+		if data.miniVisible ~= nil then
+			miniVisible = floatingMiniAllowed and data.miniVisible == true or false
+			if miniFrame then miniFrame.Visible = miniVisible end
+			if GUI._cfgSyncCallbacks.miniVisible then pcall(GUI._cfgSyncCallbacks.miniVisible, miniVisible) end
+		end
+		if floatingMiniAllowed and miniFrame and data.miniX and data.miniY then
+			miniFrame.Position = UDim2.new(0, tonumber(data.miniX) or 14, 0, tonumber(data.miniY) or 14)
+		end
+		-- 5.12: FPS / ping stats are shown by default and old configs cannot hide them on load.
+		wmStatsVisible = true
+		_syncWatermarkStats()
+		if GUI._cfgSyncCallbacks.watermarkStats then pcall(GUI._cfgSyncCallbacks.watermarkStats, wmStatsVisible) end
+		if wmFrame then
+			local savedX = tonumber(data.watermarkX) or WM_DEFAULT_X
+			local savedY = tonumber(data.watermarkY) or WM_DEFAULT_Y
+			local savedScaleX = tonumber(data.watermarkScaleX)
+			local savedScaleY = tonumber(data.watermarkScaleY) or 0
+			-- Old configs did not save scale and usually forced the bar back to the left.
+			-- Upgrade those to the new top-right default. New configs keep their dragged position.
+			if savedScaleX == nil then
+				wmFrame.AnchorPoint = Vector2.new(1, 0)
+				wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y)
+			else
+				wmFrame.Position = UDim2.new(savedScaleX, savedX, savedScaleY, savedY)
+			end
+		end
+		if data.minimizeBubbleX and data.minimizeBubbleY then
+			local b = _createMinimizeBubble()
+			b.Position = UDim2.new(0, tonumber(data.minimizeBubbleX) or 18, 0, tonumber(data.minimizeBubbleY) or 78)
+			b.Visible = minimized and GUI._open ~= false
 		end
 		GUI._loadedConfigData = data
 		for id, control in pairs(GUI._configControls or {}) do
@@ -3430,13 +4911,18 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 				_applyConfigValueToControl(control, raw, control._loadCallback ~= false)
 			end
 		end
+		-- After old saved positions are restored, recover visibility once more so tiny/small
+		-- Roblox window sizes never leave the UI lost off-screen.
+		if _resizeSnapEnabled then
+			task.defer(function() if not _destroyed then _applyResponsiveScale(true) end end)
+		end
 	end
 
-	local _loadedConfig = GUI:LoadConfig()
-	GUI._loadedConfigData = _loadedConfig
-	if _loadedConfig then
-		GUI:ApplyConfig(_loadedConfig)
-	elseif options.theme and THEMES[options.theme] then
+	GUI._startupLoadedConfig = GUI:LoadConfig()
+	GUI._loadedConfigData = GUI._startupLoadedConfig
+	if GUI._startupLoadedConfig then
+		GUI:ApplyConfig(GUI._startupLoadedConfig)
+	elseif options.theme and Library.Themes[options.theme] then
 		GUI:SetTheme(options.theme, true)
 	end
 
@@ -3795,11 +5281,15 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		S:Section({ name = "Theme" })
 
 		local themeNames = GUI:GetThemes()
-		local themeDrop = S:Dropdown({
-			name     = "Theme Style",
-			tooltip  = "Change the full window color scheme",
-			items    = themeNames,
-			default  = GUI._savedTheme or options.theme or "Dark",
+		local themeDrop = S:SearchDropdown({
+			name              = "Theme Style",
+			description       = "Search and apply a full color scheme",
+			tooltip           = "Change the full window color scheme",
+			items             = themeNames,
+			default           = GUI._savedTheme or options.theme or "Dark",
+			searchPlaceholder = "Search themes...",
+			maxVisible        = 7,
+			multi             = false,
 			callback = function(val)
 				GUI:SetTheme(val)
 			end,
@@ -3809,11 +5299,15 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		end
 
 		local accentNames = GUI:GetAccentPresets()
-		local accentDrop = S:Dropdown({
-			name     = "Accent Preset",
-			tooltip  = "Fast color presets for the UI accent",
-			items    = accentNames,
-			default  = "Blue",
+		local accentDrop = S:SearchDropdown({
+			name              = "Accent Preset",
+			description       = "Search and apply an accent color",
+			tooltip           = "Fast color presets for the UI accent",
+			items             = accentNames,
+			default           = "Blue",
+			searchPlaceholder = "Search colors...",
+			maxVisible        = 7,
+			multi             = false,
 			callback = function(val)
 				GUI:SetAccentPreset(val)
 			end,
@@ -3833,7 +5327,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			if rSlider then rSlider:Set(math.floor(c.R*255+0.5), true) end
 			if gSlider then gSlider:Set(math.floor(c.G*255+0.5), true) end
 			if bSlider then bSlider:Set(math.floor(c.B*255+0.5), true) end
-			if hexInput then hexInput:Set("#" .. _c3ToHex(c), true) end
+			if hexInput then hexInput:Set("#" .. GUI:_c3ToHex(c), true) end
 			_syncing = false
 		end
 
@@ -3854,7 +5348,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 				rSlider and rSlider.Value or 100,
 				gSlider and gSlider.Value or 150,
 				bSlider and bSlider.Value or 255)
-			_syncing = true; accentCP:Set(c, true); if hexInput then hexInput:Set("#" .. _c3ToHex(c), true) end; _syncing = false
+			_syncing = true; accentCP:Set(c, true); if hexInput then hexInput:Set("#" .. GUI:_c3ToHex(c), true) end; _syncing = false
 			applyAccent(c)
 		end
 
@@ -3873,7 +5367,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		hexInput = S:TextInput({
 			name        = "HEX / RGB Value",
 			placeholder = "#6496FF or 100,150,255",
-			default     = "#" .. _c3ToHex(Library.Theme.Accent),
+			default     = "#" .. GUI:_c3ToHex(Library.Theme.Accent),
 			tooltip     = "Type a hex or RGB color then press Enter",
 			callback    = function(s)
 				local c = parseHex(s) or parseRGB(s)
@@ -3900,138 +5394,154 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			pcall(function() scaleSlider:Set(v, true) end)
 		end
 
-		S:Section({ name = "Config Profiles" })
-		S:Info({ text = "Auto-saves per selected profile. Current path: " .. GUI:GetConfigPath() })
+		local responsiveToggle
+		responsiveToggle = S:Toggle({
+			name        = "Responsive Scale",
+			description = "Always on: auto-fits the UI when the Roblox window/screen size changes",
+			default     = true,
+			flag        = "responsiveScale",
+			tooltip     = "Always enabled so the UI stays usable on smaller or resized screens.",
+			callback    = function(state)
+				GUI:SetResponsiveScale(true)
+				if responsiveToggle then task.defer(function() pcall(function() responsiveToggle:Set(true, true) end) end) end
+				GUI:SaveConfig(true)
+			end,
+		})
+		GUI._cfgSyncCallbacks.responsiveScale = function(v)
+			pcall(function() responsiveToggle:Set(true, true) end)
+		end
+
+		S:Info({ text = "Window drag now allows the UI to move partly outside the screen while keeping a small grab area visible." })
+
+		S:Section({ name = "Top Right Mini UI" })
+		local watermarkStatsToggle = S:Toggle({
+			name        = "Show FPS / Ping",
+			description = "Always on by default: live FPS and ping in the top-right mini bar",
+			default     = GUI:GetWatermarkStatsVisible(),
+			flag        = "watermarkStatsVisible",
+			tooltip     = "This updates the top-right watermark/mini bar, not the separate floating HUD.",
+			callback    = function(state)
+				GUI:SetWatermarkStatsVisible(true)
+			end,
+		})
+		GUI._cfgSyncCallbacks.watermarkStats = function(v)
+			pcall(function() watermarkStatsToggle:Set(v, true) end)
+		end
+		S:Button({
+			name        = "Reset Top Left Position",
+			description = "Moves the top-right mini bar back to its default spot",
+			callback    = function()
+				GUI:ResetWatermarkPosition()
+				GUI.notify("Top Right Mini UI", "Position reset", 2, "success")
+			end,
+		})
+
+		S:Section({ name = "Config" })
+		S:Info({ text = "Pick one profile. Save creates the typed profile if it does not exist; Load restores the selected profile." })
 
 		local profileNameValue = GUI:GetConfigProfile()
+
+		S:Toggle({
+			name        = "Auto Load",
+			description = "Automatically load the last selected/saved profile next time",
+			default     = GUI:GetAutoLoad(),
+			tooltip     = "Stores the active profile and loads it on next execution",
+			callback    = function(state)
+				GUI:SetAutoLoad(state)
+				if state then GUI:SetAutoLoadProfile(profileNameValue or GUI:GetConfigProfile()) end
+				GUI.notify("Config", state and "Auto Load enabled" or "Auto Load disabled", 2, state and "success" or "warning")
+			end,
+		})
+
 		local profileDrop
+		local profileInput
 		local function refreshProfileDropdown(selected)
 			if profileDrop and type(profileDrop.SetItems) == "function" then
-				profileDrop:SetItems(GUI:GetConfigProfiles())
+				profileDrop:SetItems(GUI:RefreshConfigProfiles())
 				profileDrop:Set(selected or GUI:GetConfigProfile(), true)
+			end
+			if profileInput and type(profileInput.Set) == "function" then
+				profileInput:Set(selected or GUI:GetConfigProfile(), true)
 			end
 		end
 
 		profileDrop = S:SearchDropdown({
-			name              = "Active Profile",
-			description       = "Select one config profile at a time",
-			items             = GUI:GetConfigProfiles(),
+			name              = "Profile",
+			description       = "Search and choose one config profile",
+			items             = GUI:RefreshConfigProfiles(),
 			default           = GUI:GetConfigProfile(),
 			multi             = false,
 			maxVisible        = 5,
 			searchPlaceholder = "Search profiles...",
-			tooltip           = "Pick which profile Save/Load uses",
+			tooltip           = "Only one profile is active at a time",
 			callback          = function(profile)
-				profileNameValue = tostring(profile or "Default")
+				profileNameValue = _profileSanitize(profile or "Default")
 				GUI:SetConfigProfile(profileNameValue, false)
-				GUI.notify("Profile Selected", "Now editing: " .. GUI:GetConfigProfile(), 2, "info")
+				GUI:SetAutoLoadProfile(profileNameValue)
+				if profileInput then profileInput:Set(profileNameValue, true) end
+				local loaded = GUI:LoadProfile(profileNameValue)
+				refreshProfileDropdown(profileNameValue)
+				GUI.notify("Profile", loaded and ("Loaded: " .. profileNameValue) or ("Selected: " .. profileNameValue), 2, loaded and "success" or "info")
 			end,
 		})
 
-		local profileInput = S:TextInput({
-			name        = "Profile Name",
+		profileInput = S:TextInput({
+			name        = "Save As",
 			placeholder = "Default / Farm / PvP / Alt",
 			default     = GUI:GetConfigProfile(),
-			tooltip     = "Type a profile name, then press Save Profile or Switch/Create",
+			tooltip     = "Type a new name, then press Save",
 			callback    = function(text)
 				profileNameValue = _profileSanitize(text)
 			end,
 		})
 
-		S:Button({
-			name        = "Switch / Create Profile",
-			description = "Creates the profile if needed and switches Save/Load to it",
-			callback    = function()
-				local profile = _profileSanitize(profileNameValue)
-				GUI:SetConfigProfile(profile, false)
-				_addProfileToIndex(profile)
-				refreshProfileDropdown(profile)
-				profileInput:Set(profile, true)
-				GUI.notify("Profile", "Switched to: " .. profile, 2, "success")
-			end,
-		})
-
-		S:Button({
-			name        = "Save Profile",
-			description = "Save current UI values into the selected profile",
-			callback    = function()
-				local profile = _profileSanitize(profileNameValue or GUI:GetConfigProfile())
-				GUI:SaveProfile(profile)
-				refreshProfileDropdown(profile)
-				GUI.notify("Profile Saved", "Saved profile: " .. profile, 3, "success")
-			end,
-		})
-
-		S:Button({
-			name        = "Load Profile",
-			description = "Load settings from the selected profile",
-			callback    = function()
-				local profile = _profileSanitize(profileNameValue or GUI:GetConfigProfile())
-				local ok = GUI:LoadProfile(profile)
-				if ok then
-					refreshProfileDropdown(profile)
-					profileInput:Set(profile, true)
-					GUI.notify("Profile Loaded", "Loaded profile: " .. profile, 3, "success")
-				else
-					GUI.notify("Profile", "No saved data for: " .. profile, 3, "warning")
-				end
-			end,
-		})
-
-		S:Button({
-			name        = "Delete Profile",
-			description = "Delete the selected profile file",
-			callback    = function()
-				local profile = _profileSanitize(profileNameValue or GUI:GetConfigProfile())
-				if profile == "Default" then
-					GUI.notify("Profile", "Default profile cannot be deleted.", 3, "warning")
-					return
-				end
-				local ok = GUI:DeleteProfile(profile)
-				profileNameValue = GUI:GetConfigProfile()
-				refreshProfileDropdown(profileNameValue)
-				profileInput:Set(profileNameValue, true)
-				GUI.notify("Profile", (ok and "Deleted: " or "Removed from list: ") .. profile, 3, ok and "success" or "warning")
-			end,
-		})
-
-		S:Section({ name = "Legacy Config" })
-		S:Button({
-			name        = "Save Config",
-			description = "Same as Save Profile for the active profile",
-			callback    = function()
-				GUI:SaveConfig(true)
-				refreshProfileDropdown(GUI:GetConfigProfile())
-				GUI.notify("Config Saved", "Settings written to active profile.", 3)
-			end,
-		})
-
-		S:Button({
-			name        = "Load Config",
-			description = "Same as Load Profile for the active profile",
-			callback    = function()
-				local data = GUI:LoadConfig()
-				if data then
-					GUI:ApplyConfig(data)
-					GUI.notify("Config Loaded", "Settings restored from active profile.", 3)
-				else
-					GUI.notify("Config", "No saved config found for this profile.", 3)
-				end
-			end,
-		})
-
-		S:Button({
-			name        = "Reset Config",
-			description = "Delete active profile config file",
-			callback    = function()
-				local active = GUI:GetConfigProfile()
-				pcall(function() if type(delfile)=="function" and isfile(_cfgFile) then delfile(_cfgFile) end end)
-				GUI.notify("Config Reset", "Deleted saved data for: " .. active, 3)
-			end,
+		S:ButtonGrid({
+			name = "Profile Actions",
+			columns = 3,
+			buttons = {
+				{
+					name = "Save",
+					icon = Library.Icons.save,
+					callback = function()
+						local profile = _profileSanitize(profileNameValue or GUI:GetConfigProfile())
+						GUI:SetConfigProfile(profile, false)
+						local ok = GUI:SaveProfile(profile)
+						refreshProfileDropdown(profile)
+						GUI.notify("Config", ok and ("Saved: " .. profile) or "Save failed / file API unsupported", 3, ok and "success" or "error")
+					end,
+				},
+				{
+					name = "Load",
+					icon = Library.Icons.download,
+					callback = function()
+						local profile = _profileSanitize(profileNameValue or GUI:GetConfigProfile())
+						local ok = GUI:LoadProfile(profile)
+						if ok then refreshProfileDropdown(profile) end
+						GUI.notify("Config", ok and ("Loaded: " .. profile) or ("No save for: " .. profile), 3, ok and "success" or "warning")
+					end,
+				},
+				{
+					name = "Delete",
+					icon = Library.Icons.trash,
+					callback = function()
+						local profile = _profileSanitize(profileNameValue or GUI:GetConfigProfile())
+						if profile == "Default" then
+							GUI.notify("Config", "Default profile cannot be deleted.", 3, "warning")
+							return
+						end
+						local ok, msg = GUI:DeleteProfile(profile)
+						profileNameValue = "Default"
+						GUI:SetConfigProfile("Default", false)
+						pcall(function() GUI:LoadProfile("Default") end)
+						refreshProfileDropdown("Default")
+						GUI.notify("Config", ok and ("Deleted: " .. profile) or (msg or "Delete failed"), 3, ok and "success" or "warning")
+					end,
+				},
+			},
 		})
 
 		S:Section({ name = "Info" })
-		S:Label({ text = "VenturaUI v" .. Library.Version .. "  •  config profiles + searchable dropdowns" })
+		S:Label({ text = "VenturaUI v" .. Library.Version .. "  •  simple config profiles" })
 		S:Label({ text = "Logged in as: " .. LP.Name .. "  (UserId: " .. LP.UserId .. ")" })
 		S:Label({ text = "Toggle: " .. keys.toggle.Name .. "   |   Minimize: " .. keys.minimize.Name })
 		S:Divider()
@@ -4045,10 +5555,1046 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		})
 
 		-- Sync the Settings controls with the config after all callbacks exist.
-		if _loadedConfig then GUI:ApplyConfig(_loadedConfig) end
+		if GUI._startupLoadedConfig then GUI:ApplyConfig(GUI._startupLoadedConfig) end
 	end) -- task.defer (Settings)
 
 	return GUI
 end -- Library:new
 
-return Library
+-- ══════════════════════════════════════════════════════════════════════
+-- COMPLETE RUNNABLE EXAMPLE
+-- This file contains the full VenturaUI library above + the example below.
+-- You can run this entire script directly without a separate loadstring.
+-- ══════════════════════════════════════════════════════════════════════
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local LP = Players.LocalPlayer
+
+local Window = Library:new({
+    name = "CrimmyScriptz",
+    subtitle = {
+        "Loading CrimmyScriptz...",
+        "Setting up UI...",
+        "Applying saved config...",
+        "Ready."
+    },
+
+    toggleKey = Enum.KeyCode.Insert,
+    minimizeKey = Enum.KeyCode.K,
+
+    loadingTime = 1.2,
+    accent = Color3.fromRGB(180, 60, 255),
+    watermark = "CrimmyScriptz | Complete Example",
+    watermarkStats = true,
+
+    -- Loads the last selected/saved config profile automatically.
+    autoLoad = true,
+
+    aiEnabled = false,
+
+    -- Top-right mini bar shows live FPS + ping through watermarkStats.
+    -- Separate top-right HUD is removed/disabled by default.
+    floatingMiniUI = false,
+    miniTitle = "CrimmyScriptz",
+    responsiveScale = true,
+    looseDragBounds = true,
+
+    -- Optional key system built into the UI lib
+    keyEnabled = false,
+    key = "crimmy",
+    keyLink = "https://example.com",
+
+    onClose = function()
+        print("[VenturaUI] Window closed")
+    end,
+
+    onKeySuccess = function()
+        print("[VenturaUI] Correct key")
+    end,
+
+    onKeyFail = function()
+        warn("[VenturaUI] Wrong key / key failed")
+    end
+})
+
+--// Basic Window API examples
+print("Ventura Version:", Window:GetVersion())
+Window:SetSubtitle("Complete example loaded")
+Window:SetTitle("CrimmyScriptz")
+
+--// State variables used by this example
+local State = {
+    AutoFarm = false,
+    WalkSpeed = 16,
+    Mode = "Normal",
+    SelectedPlayer = nil,
+    FarmAreas = {},
+    CustomMessage = "",
+    DemoProgress = 35,
+    Theme = "Dark",
+    AccentPreset = "Purple",
+}
+
+local restoreCharacterDefaults = function() end
+
+-- Stop any example/background activity when the UI closes.
+Window:OnDestroy(function()
+    State.AutoFarm = false
+    restoreCharacterDefaults()
+    print("[VenturaUI] All example activity stopped and character values restored")
+end)
+
+local function getCharacter()
+    return LP.Character or LP.CharacterAdded:Wait()
+end
+
+local function getHumanoid()
+    local character = getCharacter()
+    return character and character:FindFirstChildOfClass("Humanoid")
+end
+
+--// Character cleanup helpers
+--// Sliders/toggles can change your character, so we snapshot defaults and restore them on close.
+local CharacterDefaults = {
+    WalkSpeed = 16,
+    JumpPower = 50,
+    JumpHeight = 7.2,
+}
+
+local function snapshotCharacterDefaults()
+    local humanoid = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    pcall(function() CharacterDefaults.WalkSpeed = humanoid.WalkSpeed end)
+    pcall(function() CharacterDefaults.JumpPower = humanoid.JumpPower end)
+    pcall(function() CharacterDefaults.JumpHeight = humanoid.JumpHeight end)
+end
+
+function restoreCharacterDefaults()
+    local humanoid = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    pcall(function() humanoid.WalkSpeed = CharacterDefaults.WalkSpeed or 16 end)
+    pcall(function() humanoid.JumpPower = CharacterDefaults.JumpPower or 50 end)
+    pcall(function() humanoid.JumpHeight = CharacterDefaults.JumpHeight or 7.2 end)
+end
+
+snapshotCharacterDefaults()
+Window:RegisterCleanup(restoreCharacterDefaults, "Restore character movement")
+Window:TrackConnection(LP.CharacterAdded:Connect(function()
+    task.wait(0.75)
+    snapshotCharacterDefaults()
+end))
+
+Window:OnReconnect(function(character, humanoid, reason)
+    -- This runs after death/respawn so character-bound features can rebind.
+    -- Active toggles/sliders marked reconnect=true also re-fire automatically.
+    print("[VenturaUI] Reconnected character controls:", tostring(reason))
+end)
+
+local function getPlayerNames()
+    local names = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        table.insert(names, player.Name)
+    end
+    table.sort(names)
+    return names
+end
+
+--// Nav sections organize sidebar tabs
+Window:NavSection("Core")
+
+--// Main Tab
+local MainTab = Window:CreateTab({
+    name = "Main",
+    icon = Library.Icons.home,
+    badge = "NEW",
+    badgeColor = Color3.fromRGB(180, 60, 255)
+})
+
+MainTab:Section({
+    name = "Main Controls",
+    subtitle = "All common controls with config flags",
+    icon = Library.Icons.bolt
+})
+
+MainTab:Paragraph({
+    title = "Example UI",
+    icon = Library.Icons.info,
+    text = "This example shows buttons, toggles, sliders, dropdowns, searchable dropdowns, text inputs, keybinds, color pickers, images, hyperlinks, progress bars, badges, chips, hints, notifications, config IDs, themes, and window methods."
+})
+
+MainTab:Badge({
+    text = "COMPLETE EXAMPLE",
+    color = Color3.fromRGB(180, 60, 255)
+})
+
+MainTab:Chip({
+    text = "Config IDs Enabled",
+    icon = Library.Icons.save,
+    color = Color3.fromRGB(80, 200, 130)
+})
+
+MainTab:Info({
+    text = "Use flags/config IDs so saved settings do not break when you rename controls."
+})
+
+local NotifyButton = MainTab:Button({
+    name = "Notify Test",
+    description = "Shows every notification type",
+    icon = Library.Icons.bell,
+    badge = "CLICK",
+    tooltip = "Tests Window.notify",
+    callback = function()
+        Window.notify("Info", "This is an info notification.", 2, "info")
+        task.delay(0.35, function()
+            Window.notify("Success", "This is a success notification.", 2, "success")
+        end)
+        task.delay(0.70, function()
+            Window.notify("Warning", "This is a warning notification.", 2, "warning")
+        end)
+        task.delay(1.05, function()
+            Window.notify("Error", "This is an error notification.", 2, "error")
+        end)
+    end
+})
+
+local AutoFarmToggle = MainTab:Toggle({
+    name = "Auto Farm",
+    description = "Example toggle with a config ID",
+    flag = "autoFarm",
+    default = false,
+    tooltip = "Turns the example loop on or off",
+    onText = "ON",
+    offText = "OFF",
+    callback = function(state)
+        State.AutoFarm = state
+        Window.notify("Auto Farm", state and "Enabled" or "Disabled", 2, state and "success" or "warning")
+    end
+})
+
+local WalkSpeedSlider = MainTab:Slider({
+    name = "WalkSpeed",
+    description = "Smooth slider with value pill",
+    flag = "walkSpeed",
+    min = 16,
+    max = 100,
+    default = 16,
+    round = 1,
+    suffix = " speed",
+    tooltip = "Changes your Humanoid WalkSpeed",
+    showRange = true,
+    callback = function(value)
+        State.WalkSpeed = value
+        local humanoid = getHumanoid()
+        if humanoid then
+            humanoid.WalkSpeed = value
+        end
+    end
+})
+
+local CompactSlider = MainTab:Slider({
+    name = "Compact Slider",
+    flag = "compactSlider",
+    min = 0,
+    max = 1,
+    default = 0.35,
+    round = 0.05,
+    compact = true,
+    showRange = false,
+    valueFormatter = function(v)
+        return tostring(math.floor(v * 100 + 0.5)) .. "%"
+    end,
+    callback = function(value)
+        print("Compact slider:", value)
+    end
+})
+
+local ModeDropdown = MainTab:Dropdown({
+    name = "Mode",
+    description = "Normal dropdown",
+    flag = "mode",
+    items = {
+        "Safe",
+        "Normal",
+        "Fast",
+        "Rage"
+    },
+    default = "Normal",
+    tooltip = "Example dropdown mode",
+    callback = function(selected)
+        State.Mode = selected
+        Window.notify("Mode Changed", "Selected: " .. tostring(selected), 2, "info")
+    end
+})
+
+local FarmAreasDropdown = MainTab:Dropdown({
+    name = "Farm Areas",
+    description = "Multi-select dropdown",
+    flag = "farmAreas",
+    multi = true,
+    items = {
+        "Forest",
+        "Swamp",
+        "Desert",
+        "Town",
+        "Cave"
+    },
+    default = {"Forest"},
+    placeholder = "Pick areas...",
+    callback = function(selectedList)
+        State.FarmAreas = selectedList
+        print("Farm areas:", table.concat(selectedList, ", "))
+    end
+})
+
+local PlayerSearchDropdown = MainTab:SearchDropdown({
+    name = "Select Player",
+    description = "Search filter dropdown",
+    flag = "selectedPlayer",
+    items = getPlayerNames(),
+    default = LP.Name,
+    placeholder = "Pick player...",
+    searchPlaceholder = "Search players...",
+    maxVisible = 6,
+    tooltip = "Click it like a normal dropdown, then search inside it",
+    callback = function(selected)
+        State.SelectedPlayer = selected
+        Window.notify("Player", "Selected: " .. tostring(selected), 2, "info")
+    end
+})
+
+local MultiSearchDropdown = MainTab:SearchableDropdown({
+    name = "Search Multi Items",
+    description = "Searchable multi-select dropdown alias",
+    flag = "searchMultiItems",
+    multi = true,
+    items = {
+        "Chest",
+        "Saints",
+        "Tree",
+        "Mob",
+        "Boss",
+        "Loot",
+        "Fishing Spot",
+        "Quest NPC",
+        "Shop",
+        "Safe Zone"
+    },
+    default = {"Chest", "Loot"},
+    searchPlaceholder = "Search item types...",
+    callback = function(list)
+        print("Search multi:", table.concat(list, ", "))
+    end
+})
+
+local MessageInput = MainTab:TextInput({
+    name = "Custom Message",
+    description = "Normal text input with config ID",
+    flag = "customMessage",
+    placeholder = "Type anything...",
+    default = "Hello Ventura",
+    tooltip = "Prints your message",
+    callback = function(text)
+        State.CustomMessage = text
+        print("[CrimmyScriptz Message]:", text)
+    end
+})
+
+local NumberInput = MainTab:TextInput({
+    name = "Number Input",
+    description = "Numeric-only TextInput",
+    flag = "numberInput",
+    numeric = true,
+    placeholder = "Type a number...",
+    default = 25,
+    callback = function(number)
+        print("Number input value:", number, typeof(number))
+    end
+})
+
+local ThemeColorPicker = MainTab:ColorPicker({
+    name = "Demo Color Picker",
+    flag = "demoColor",
+    default = Color3.fromRGB(180, 60, 255),
+    tooltip = "Color picker saves by flag",
+    callback = function(color)
+        print("Picked color:", color)
+    end
+})
+
+local ExampleKeybind = MainTab:Keybind({
+    name = "Example Keybind",
+    description = "Press this key to send a notification",
+    flag = "exampleKeybind",
+    default = Enum.KeyCode.RightShift,
+    tooltip = "Click the key box to rebind",
+    callback = function(key)
+        Window.notify("Keybind", "Pressed: " .. key.Name, 2, "success")
+    end
+})
+
+local DemoProgress = MainTab:ProgressBar({
+    name = "Demo Progress",
+    default = State.DemoProgress,
+    suffix = "%",
+    tooltip = "ProgressBar object supports :Set(value)"
+})
+
+MainTab:ButtonGrid({
+    name = "Quick Actions",
+    columns = 3,
+    tooltip = "Compact button grid",
+    buttons = {
+        {
+            name = "Save",
+            icon = Library.Icons.save,
+            callback = function()
+                Window:SaveConfig(true)
+                Window.notify("Config", "Saved config.", 2, "success")
+            end
+        },
+        {
+            name = "Load",
+            icon = Library.Icons.download,
+            callback = function()
+                Window:LoadConfig()
+                Window.notify("Config", "Loaded config.", 2, "info")
+            end
+        },
+        {
+            name = "Players",
+            icon = Library.Icons.users,
+            callback = function()
+                PlayerSearchDropdown:SetItems(getPlayerNames())
+                Window.notify("Players", "Player list refreshed.", 2, "success")
+            end
+        },
+        {
+            name = "75%",
+            icon = Library.Icons.chart,
+            callback = function()
+                DemoProgress:Set(75)
+            end
+        },
+        {
+            name = "Fast",
+            icon = Library.Icons.speed,
+            callback = function()
+                ModeDropdown:Set("Fast")
+            end
+        },
+        {
+            name = "Purple",
+            icon = Library.Icons.palette,
+            callback = function()
+                Window:SetAccentPreset("Purple")
+            end
+        }
+    }
+})
+
+MainTab:ControlHint({
+    name = "Toggle UI",
+    key = "Insert",
+    description = "Shows or hides the main window"
+})
+
+MainTab:ControlHint({
+    name = "Minimize UI",
+    key = "K",
+    description = "Minimizes or restores the window"
+})
+
+MainTab:Hyperlink({
+    text = "Copy Discord / Website Link",
+    url = "https://example.com",
+    tooltip = "Copies the URL to clipboard",
+    openBrowser = false
+})
+
+MainTab:Image({
+    url = "rbxassetid://9182757592",
+    height = 90,
+    tooltip = "Example image component"
+})
+
+MainTab:Warning({
+    text = "Warning component example."
+})
+
+MainTab:Success({
+    text = "Success component example."
+})
+
+MainTab:Divider({
+    text = "End of Main Controls"
+})
+
+MainTab:Label({
+    text = "Made with Ventura UI",
+    icon = Library.Icons.sparkle,
+    color = Color3.fromRGB(180, 60, 255),
+    size = 13
+})
+
+MainTab:Separator()
+
+--// Player Tab
+local PlayerTab = Window:CreateTab({
+    name = "Player",
+    icon = Library.Icons.user
+})
+
+PlayerTab:Section({
+    name = "Player Options",
+    subtitle = "Player actions and returned control methods",
+    icon = Library.Icons.player
+})
+
+PlayerTab:Button({
+    name = "Reset WalkSpeed",
+    description = "Sets WalkSpeed back to 16",
+    icon = Library.Icons.refresh,
+    callback = function()
+        WalkSpeedSlider:Set(16)
+        local humanoid = getHumanoid()
+        if humanoid then
+            humanoid.WalkSpeed = 16
+        end
+        Window.notify("Player", "WalkSpeed reset to 16", 2, "success")
+    end
+})
+
+PlayerTab:Button({
+    name = "Add Test Character Effect",
+    description = "Creates a tracked Highlight effect that is removed when the UI closes",
+    icon = Library.Icons.sparkle,
+    callback = function()
+        local character = LP.Character
+        if not character then return end
+        local old = character:FindFirstChild("VenturaTrackedHighlight")
+        if old then old:Destroy() end
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "VenturaTrackedHighlight"
+        highlight.FillTransparency = 0.75
+        highlight.OutlineTransparency = 0
+        highlight.Parent = character
+        Window:TrackEffect(highlight)
+        Window.notify("Effect", "Tracked effect added. It will be removed on close.", 3, "success")
+    end
+})
+
+PlayerTab:Button({
+    name = "Restore Character Now",
+    description = "Restores WalkSpeed/Jump values and removes tracked effects without closing",
+    icon = Library.Icons.refresh,
+    callback = function()
+        restoreCharacterDefaults()
+        Window:RestoreTrackedProperties()
+        Window.notify("Cleanup", "Character defaults restored and tracked effects cleaned.", 3, "success")
+    end
+})
+
+PlayerTab:Button({
+    name = "Copy Username",
+    description = "Copies your Roblox username",
+    icon = Library.Icons.copy,
+    callback = function()
+        pcall(function()
+            setclipboard(LP.Name)
+        end)
+        Window.notify("Copied", LP.Name, 2, "success")
+    end
+})
+
+PlayerTab:Button({
+    name = "Use Control :Get() Methods",
+    description = "Prints values from controls",
+    icon = Library.Icons.console,
+    callback = function()
+        print("AutoFarm:", AutoFarmToggle:Get())
+        print("WalkSpeed:", WalkSpeedSlider:Get())
+        print("Mode:", ModeDropdown:Get())
+        print("Player:", PlayerSearchDropdown:Get())
+        print("Message:", MessageInput:Get())
+        print("Keybind:", ExampleKeybind:Get())
+        print("Color:", ThemeColorPicker:Get())
+        Window.notify("Console", "Printed control values to console.", 2, "info")
+    end
+})
+
+PlayerTab:Button({
+    name = "Disable Notify Button",
+    description = "Example Button:SetDisabled(true)",
+    icon = Library.Icons.lock,
+    callback = function()
+        NotifyButton:SetDisabled(true)
+        Window.notify("Button", "Notify button disabled.", 2, "warning")
+    end
+})
+
+PlayerTab:Button({
+    name = "Enable Notify Button",
+    description = "Example Button:SetDisabled(false)",
+    icon = Library.Icons.unlock,
+    callback = function()
+        NotifyButton:SetDisabled(false)
+        Window.notify("Button", "Notify button enabled.", 2, "success")
+    end
+})
+
+PlayerTab:Button({
+    name = "Rename Notify Button",
+    description = "Example Button:SetText(text)",
+    icon = Library.Icons.edit,
+    callback = function()
+        NotifyButton:SetText("Notify Test Renamed")
+    end
+})
+
+--// Theme / Config Tab
+Window:NavSection("Demo Settings")
+
+local SettingsTab = Window:CreateTab({
+    name = "Demo Settings",
+    icon = Library.Icons.settings
+})
+
+SettingsTab:Section({
+    name = "Theme System",
+    subtitle = "Themes, accent presets, manual colors, and scale",
+    icon = Library.Icons.palette
+})
+
+local ThemeDropdown = SettingsTab:SearchDropdown({
+    name = "Theme",
+    description = "Search and apply a UI theme",
+    flag = "themeName",
+    items = Window:GetThemes(),
+    default = Window:GetTheme(),
+    searchPlaceholder = "Search themes...",
+    callback = function(theme)
+        State.Theme = theme
+        Window:SetTheme(theme)
+        Window.notify("Theme", "Applied: " .. tostring(theme), 2, "success")
+    end
+})
+
+local AccentDropdown = SettingsTab:SearchDropdown({
+    name = "Accent Preset",
+    description = "Search and apply accent color preset",
+    flag = "accentPreset",
+    items = Window:GetAccentPresets(),
+    default = "Purple",
+    searchPlaceholder = "Search colors...",
+    callback = function(preset)
+        State.AccentPreset = preset
+        Window:SetAccentPreset(preset)
+        Window.notify("Accent", "Applied: " .. tostring(preset), 2, "success")
+    end
+})
+
+SettingsTab:ColorPicker({
+    name = "Manual Accent Color",
+    flag = "manualAccentColor",
+    default = Color3.fromRGB(180, 60, 255),
+    callback = function(color)
+        Window:SetAccent(color)
+    end
+})
+
+local UIScaleSlider = SettingsTab:Slider({
+    name = "UI Scale",
+    description = "Uses Window:SetScale(value)",
+    flag = "uiScale",
+    min = 70,
+    max = 140,
+    default = Window:GetScale(),
+    round = 1,
+    suffix = "%",
+    callback = function(value)
+        Window:SetScale(value)
+    end
+})
+
+SettingsTab:ButtonGrid({
+    name = "Theme Presets",
+    columns = 3,
+    buttons = {
+        {
+            name = "Dark",
+            icon = Library.Icons.moon,
+            callback = function()
+                ThemeDropdown:Set("Dark")
+                Window:SetTheme("Dark")
+            end
+        },
+        {
+            name = "Midnight",
+            icon = Library.Icons.star,
+            callback = function()
+                ThemeDropdown:Set("Midnight")
+                Window:SetTheme("Midnight")
+            end
+        },
+        {
+            name = "Crimson",
+            icon = Library.Icons.fire,
+            callback = function()
+                ThemeDropdown:Set("Crimson")
+                Window:SetTheme("Crimson")
+            end
+        },
+        {
+            name = "Teal",
+            icon = Library.Icons.ice,
+            callback = function()
+                ThemeDropdown:Set("Teal")
+                Window:SetTheme("Teal")
+            end
+        },
+        {
+            name = "Space",
+            icon = Library.Icons.star,
+            callback = function()
+                ThemeDropdown:Set("Space")
+                Window:SetTheme("Space")
+                Window:SetAccentPreset("Starlight")
+            end
+        },
+        {
+            name = "Nebula",
+            icon = Library.Icons.sparkle,
+            callback = function()
+                ThemeDropdown:Set("Nebula")
+                Window:SetTheme("Nebula")
+            end
+        }
+    }
+})
+
+SettingsTab:Section({
+    name = "Simple Config",
+    subtitle = "One profile dropdown, one name box, three buttons",
+    icon = Library.Icons.save
+})
+
+SettingsTab:Info({
+    text = "Pick a profile from the dropdown, or type a new name and press Save. Save creates the profile automatically."
+})
+
+local ProfileDropdown
+local ProfileNameInput
+local function cleanProfileName(text)
+    text = tostring(text or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    if text == "" then text = "Default" end
+    return text
+end
+
+local function refreshProfileDropdown(selected)
+    if not ProfileDropdown then return end
+    local profile = selected or Window:GetConfigProfile()
+    ProfileDropdown:SetItems(Window:GetConfigProfiles())
+    ProfileDropdown:Set(profile, true)
+    if ProfileNameInput then
+        ProfileNameInput:Set(profile, true)
+    end
+end
+
+ProfileDropdown = SettingsTab:SearchDropdown({
+    name = "Profile",
+    description = "Search and select one config profile",
+    items = Window:GetConfigProfiles(),
+    default = Window:GetConfigProfile(),
+    multi = false,
+    placeholder = "Choose profile...",
+    searchPlaceholder = "Search profiles...",
+    maxVisible = 5,
+    tooltip = "Only one profile can be selected at a time.",
+    callback = function(profile)
+        profile = cleanProfileName(profile)
+        Window:SetConfigProfile(profile, false)
+        if ProfileNameInput then ProfileNameInput:Set(profile, true) end
+        Window.notify("Profile", "Selected: " .. profile, 2, "info")
+    end
+})
+
+ProfileNameInput = SettingsTab:TextInput({
+    name = "Save As",
+    description = "Type a new profile name, then press Save",
+    placeholder = "Farm / PvP / Legit / Testing",
+    default = Window:GetConfigProfile(),
+    tooltip = "Leave this as the selected profile, or type a new one.",
+    callback = function(text)
+        State.PendingProfile = cleanProfileName(text)
+    end
+})
+
+SettingsTab:ButtonGrid({
+    name = "Config Actions",
+    columns = 3,
+    buttons = {
+        {
+            name = "Save",
+            icon = Library.Icons.save,
+            callback = function()
+                local profile = cleanProfileName(ProfileNameInput:Get())
+                Window:SetConfigProfile(profile, false)
+                local ok = Window:SaveProfile(profile)
+                refreshProfileDropdown(profile)
+                Window.notify("Config", ok and ("Saved: " .. profile) or "Save failed / file API unsupported.", 3, ok and "success" or "error")
+            end,
+        },
+        {
+            name = "Load",
+            icon = Library.Icons.download,
+            callback = function()
+                local profile = cleanProfileName(ProfileNameInput:Get())
+                local ok = Window:LoadProfile(profile)
+                if ok then
+                    Window:ForceScaleRefresh()
+                    refreshProfileDropdown(profile)
+                end
+                Window.notify("Config", ok and ("Loaded: " .. profile) or ("No save found for: " .. profile), 3, ok and "success" or "warning")
+            end,
+        },
+        {
+            name = "Delete",
+            icon = Library.Icons.trash,
+            callback = function()
+                local profile = cleanProfileName(ProfileNameInput:Get())
+                if profile == "Default" then
+                    Window.notify("Config", "Default profile cannot be deleted.", 3, "warning")
+                    return
+                end
+                local ok, msg = Window:DeleteProfile(profile)
+                Window:SetConfigProfile("Default", false)
+                pcall(function() Window:LoadProfile("Default") end)
+                refreshProfileDropdown("Default")
+                Window.notify("Config", ok and ("Deleted: " .. profile) or (msg or "Delete failed"), 3, ok and "success" or "warning")
+            end,
+        },
+    }
+})
+
+SettingsTab:Section({
+    name = "Window Methods",
+    subtitle = "Title, subtitle, scale, tab selection, and close",
+    icon = Library.Icons.monitor
+})
+
+SettingsTab:TextInput({
+    name = "Window Title",
+    flag = "windowTitleInput",
+    placeholder = "Type a new title...",
+    default = "CrimmyScriptz",
+    callback = function(text)
+        Window:SetTitle(text)
+    end
+})
+
+SettingsTab:TextInput({
+    name = "Window Subtitle",
+    flag = "windowSubtitleInput",
+    placeholder = "Type a subtitle...",
+    default = "Complete example loaded",
+    callback = function(text)
+        Window:SetSubtitle(text)
+    end
+})
+
+SettingsTab:ButtonGrid({
+    name = "Window Actions",
+    columns = 2,
+    buttons = {
+        {
+            name = "Main Tab",
+            icon = Library.Icons.home,
+            callback = function()
+                Window:SelectTab("Main")
+            end
+        },
+        {
+            name = "Player Tab",
+            icon = Library.Icons.user,
+            callback = function()
+                Window:SelectTab("Player")
+            end
+        },
+        {
+            name = "100% Scale",
+            icon = Library.Icons.sliders,
+            callback = function()
+                UIScaleSlider:Set(100)
+                Window:SetScale(100)
+                Window:ForceScaleRefresh()
+            end
+        },
+        {
+            name = "Close UI",
+            icon = Library.Icons.close,
+            callback = function()
+                Window:Destroy()
+            end
+        }
+    }
+})
+
+--// Extra Tab
+Window:NavSection("Extra")
+
+local ExtraTab = Window:CreateTab({
+    name = "Extra",
+    icon = Library.Icons.sparkle
+})
+
+ExtraTab:Section({
+    name = "Extra Components",
+    subtitle = "Remaining display/helper components",
+    icon = Library.Icons.grid
+})
+
+ExtraTab:Paragraph({
+    title = "Tab Methods Used",
+    text = "CreateTab, Activate, Deactivate, Disable, Enable, Section, Separator, Label, Paragraph, Badge, ButtonGrid, Image, ProgressBar, Button, Toggle, Slider, Dropdown, SearchDropdown, TextInput, ColorPicker, Keybind, Warning, Info, Success, Divider, Chip, ControlHint, and Hyperlink are all shown in this example."
+})
+
+local ExtraProgress = ExtraTab:ProgressBar({
+    name = "Extra Progress",
+    default = 10,
+    suffix = "%"
+})
+
+ExtraTab:Button({
+    name = "Animate Progress",
+    description = "Updates the progress bar over time",
+    icon = Library.Icons.timer,
+    callback = function()
+        task.spawn(function()
+            for i = 0, 100, 10 do
+                if not Window:ShouldRun() then return end
+                ExtraProgress:Set(i)
+                task.wait(0.08)
+            end
+        end)
+    end
+})
+
+ExtraTab:Button({
+    name = "Disable Extra Tab",
+    description = "Example Tab:Disable()",
+    icon = Library.Icons.ban,
+    callback = function()
+        ExtraTab:Disable()
+        Window.notify("Extra", "Extra tab disabled. Use Settings > Enable Extra Tab.", 3, "warning")
+        Window:SelectTab("Demo Settings")
+    end
+})
+
+SettingsTab:Button({
+    name = "Enable Extra Tab",
+    description = "Example Tab:Enable()",
+    icon = Library.Icons.check,
+    callback = function()
+        ExtraTab:Enable()
+        Window.notify("Extra", "Extra tab enabled.", 2, "success")
+    end
+})
+
+ExtraTab:Divider({
+    text = "Aliases"
+})
+
+ExtraTab:FilterDropdown({
+    name = "FilterDropdown Alias",
+    description = "Alias of SearchDropdown",
+    flag = "filterDropdownAlias",
+    items = {
+        "Alpha",
+        "Beta",
+        "Gamma",
+        "Delta",
+        "Omega"
+    },
+    searchPlaceholder = "Search Greek letters...",
+    callback = function(value)
+        print("FilterDropdown alias selected:", value)
+    end
+})
+
+ExtraTab:Label({
+    text = "End of complete example.",
+    icon = Library.Icons.check,
+    color = Color3.fromRGB(80, 220, 140),
+    size = 13
+})
+
+--// Top-right mini bar / watermark stats demo
+MainTab:Section({
+    name = "Top Right Mini UI"
+})
+
+MainTab:ButtonGrid({
+    name = "Top Left Controls",
+    columns = 3,
+    buttons = {
+        {
+            name = "Toggle Stats",
+            icon = Library.Icons.monitor,
+            callback = function()
+                local visible = Window:SetWatermarkStatsVisible(not Window:GetWatermarkStatsVisible())
+                Window.notify("Top Right Mini UI", visible and "Stats shown" or "Stats hidden", 2, visible and "success" or "warning")
+            end
+        },
+        {
+            name = "Reset Bar",
+            icon = Library.Icons.refresh,
+            callback = function()
+                Window:ResetWatermarkPosition()
+                Window.notify("Top Right Mini UI", "Position reset", 2, "success")
+            end
+        },
+        {
+            name = "Print Stats",
+            icon = Library.Icons.bolt,
+            callback = function()
+                print("Current FPS:", Window:GetFPS(), "Current Ping:", Window:GetPing())
+                Window.notify("Stats", "FPS: " .. Window:GetFPS() .. " | Ping: " .. Window:GetPing() .. "ms", 2, "info")
+            end
+        }
+    }
+})
+
+--// Example loop
+--// Your actual automation logic would go inside this loop.
+task.spawn(function()
+    while not Window:IsDestroyed() and task.wait(0.25) do
+        if State.AutoFarm then
+            -- Put your auto farm logic here.
+            -- This example only prints so the UI demo stays safe.
+            print("AutoFarm running | Mode:", State.Mode, "| Speed:", State.WalkSpeed)
+        end
+    end
+end)
+
+--// Refresh searchable player dropdown when players join/leave
+local playerAddedConn = Window:TrackConnection(Players.PlayerAdded:Connect(function()
+    if Window:IsDestroyed() then return end
+    task.wait(0.2)
+    if not Window:IsDestroyed() then PlayerSearchDropdown:SetItems(getPlayerNames()) end
+end))
+
+local playerRemovingConn = Window:TrackConnection(Players.PlayerRemoving:Connect(function()
+    if Window:IsDestroyed() then return end
+    task.wait(0.2)
+    if not Window:IsDestroyed() then PlayerSearchDropdown:SetItems(getPlayerNames()) end
+end))
+
+Window:OnDestroy(function()
+    State.AutoFarm = false
+    restoreCharacterDefaults()
+    pcall(function() playerAddedConn:Disconnect() end)
+    pcall(function() playerRemovingConn:Disconnect() end)
+end)
+
+Window.notify("Ventura UI", "Complete example loaded.", 3, "success")
