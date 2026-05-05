@@ -18,7 +18,7 @@ local TI_SLOW = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.
 local MOBILE  = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 local Library = {}
-Library.Version = "5.18-topright-space-theme-stable"
+Library.Version = "5.20-themed-bubble"
 
 -- ══════════════════════════════════════════════════════════════════════
 -- ICON SYSTEM
@@ -552,7 +552,7 @@ function Library:new(options)
 		configAutoLoad  = true,
 		onClose         = nil,
 		watermark       = nil,
-		watermarkStats  = true,    -- show FPS + ping in the top-left watermark bar
+		watermarkStats  = true,    -- show FPS + ping in the top-right watermark bar
 		destroyOnRespawn= false,
 		reconnectOnRespawn = true,
 		reconnectDelay   = 0.85,
@@ -2074,35 +2074,60 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	local function _styleMinimizeBubble()
 		if not minimizeBubble then return end
 		local accent = Library.Theme.Accent
-		local isSpace = tostring(GUI._savedTheme or ""):lower() == "space"
-		minimizeBubble.BackgroundColor3 = isSpace and Color3.fromRGB(8, 11, 26) or Library.Theme.Surface
-		if minimizeBubbleStroke then minimizeBubbleStroke.Color = accent end
-		if minimizeBubbleAccent then minimizeBubbleAccent.BackgroundColor3 = accent end
+		local themeName = tostring(GUI._savedTheme or GUI._activeTheme or "Dark")
+		local themeKey = themeName:lower()
+		local bg = Library.Theme.Background or Color3.fromRGB(8, 8, 12)
+		local surface = Library.Theme.Surface or Color3.fromRGB(18, 18, 22)
+		local hover = Library.Theme.SurfaceHover or surface
+		local border = Library.Theme.BorderHover or Library.Theme.Border or accent
+		local starColor = Library.Theme.TextPrimary or Color3.fromRGB(245,245,255)
+
+		-- 5.20: every theme gets the animated orbit/star bubble. The colors are
+		-- pulled from the current theme so it no longer looks like the default dark one.
+		local shell = bg:Lerp(accent, themeKey == "space" and 0.18 or 0.11)
+		local inner = surface:Lerp(accent, themeKey == "space" and 0.16 or 0.09)
+		local top = hover:Lerp(accent, 0.28)
+		local bottom = bg:Lerp(Color3.fromRGB(0,0,0), 0.28)
+
+		minimizeBubble.BackgroundColor3 = shell
+		if minimizeBubbleStroke then minimizeBubbleStroke.Color = border:Lerp(accent, 0.45) end
+		if minimizeBubbleAccent then
+			minimizeBubbleAccent.BackgroundColor3 = accent
+			minimizeBubbleAccent.Visible = false
+		end
 		if minimizeBubbleGlow then
 			minimizeBubbleGlow.BackgroundColor3 = accent
-			minimizeBubbleGlow.BackgroundTransparency = isSpace and 0.64 or 0.78
+			minimizeBubbleGlow.BackgroundTransparency = themeKey == "space" and 0.60 or 0.68
 		end
 		if minimizeBubbleRing then
 			minimizeBubbleRing.BackgroundColor3 = accent
-			minimizeBubbleRing.BackgroundTransparency = isSpace and 0.82 or 0.88
+			minimizeBubbleRing.BackgroundTransparency = themeKey == "space" and 0.80 or 0.84
 		end
 		if minimizeBubbleDot then minimizeBubbleDot.BackgroundColor3 = accent end
 		if minimizeBubbleInner then
-			minimizeBubbleInner.BackgroundColor3 = isSpace and Color3.fromRGB(10, 16, 38) or Color3.fromRGB(18,18,22)
+			minimizeBubbleInner.BackgroundColor3 = inner
 		end
 		if minimizeBubbleGradient then
-			minimizeBubbleGradient.Color = isSpace and ColorSequence.new({
-				ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 28, 70)),
-				ColorSequenceKeypoint.new(0.55, Color3.fromRGB(8, 11, 26)),
-				ColorSequenceKeypoint.new(1, Color3.fromRGB(2, 4, 12)),
-			}) or ColorSequence.new({
-				ColorSequenceKeypoint.new(0, Color3.fromRGB(42,42,52)),
-				ColorSequenceKeypoint.new(0.55, Library.Theme.Surface),
-				ColorSequenceKeypoint.new(1, Color3.fromRGB(12,12,16)),
+			minimizeBubbleGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, top),
+				ColorSequenceKeypoint.new(0.52, shell),
+				ColorSequenceKeypoint.new(1, bottom),
 			})
 		end
 		for _, child in ipairs(minimizeBubble:GetDescendants()) do
-			if child.Name == "BubbleStar" then child.Visible = isSpace end
+			if child.Name == "BubbleStar" then
+				child.Visible = true
+				child.BackgroundColor3 = starColor:Lerp(accent, 0.18)
+			elseif child.Name == "ModernMarkAccentTop" or child.Name == "ModernMarkMiddle" or child.Name == "ModernMarkAccentBottom" then
+				child.Visible = false
+			elseif child.Name == "BubbleSpaceOrbit" then
+				child.Visible = true
+				local st = child:FindFirstChildOfClass("UIStroke")
+				if st then
+					st.Color = accent:Lerp(starColor, 0.35)
+					st.Transparency = themeKey == "space" and 0.70 or 0.78
+				end
+			end
 		end
 	end
 
@@ -2186,7 +2211,27 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		local innerStroke = stroke(minimizeBubbleInner, Color3.fromRGB(55,55,65), 1)
 		innerStroke.Transparency = 0.15
 
-		-- Tiny Space-theme star specks. Hidden unless the Space theme is active.
+		-- Animated orbit rings. They recolor to every active theme.
+		for _, spec in ipairs({
+			{34, 34, -18, 0.76},
+			{24, 24,  22, 0.84},
+		}) do
+			local orbit = Instance.new("Frame", minimizeBubbleInner)
+			orbit.Name = "BubbleSpaceOrbit"
+			orbit.AnchorPoint = Vector2.new(0.5, 0.5)
+			orbit.Position = UDim2.fromScale(0.5, 0.5)
+			orbit.Size = UDim2.new(0, spec[1], 0, spec[2])
+			orbit.BackgroundTransparency = 1
+			orbit.BorderSizePixel = 0
+			orbit.Rotation = spec[3]
+			orbit.Visible = true
+			orbit.ZIndex = 853
+			corner(orbit, 100)
+			local orbitStroke = stroke(orbit, Color3.fromRGB(130, 205, 255), 1)
+			orbitStroke.Transparency = spec[4]
+		end
+
+		-- Tiny animated star specks. They recolor to every active theme.
 		for _, spec in ipairs({
 			{0.30, 0.28, 2}, {0.68, 0.33, 1}, {0.40, 0.73, 1}, {0.74, 0.66, 2}, {0.22, 0.58, 1}
 		}) do
@@ -2199,8 +2244,47 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			star.BackgroundTransparency = 0.12
 			star.BorderSizePixel = 0
 			star.ZIndex = 853
-			star.Visible = false
+			star.Visible = true
 			corner(star, 100)
+		end
+
+		GUI._bubbleStars = GUI._bubbleStars or {}
+		for i, child in ipairs(minimizeBubbleInner:GetChildren()) do
+			if child.Name == "BubbleStar" then
+				table.insert(GUI._bubbleStars, {
+					obj = child,
+					baseX = child.Position.X.Scale,
+					baseY = child.Position.Y.Scale,
+					phase = i * 0.83,
+					speed = 0.65 + (i % 4) * 0.18,
+					range = 0.035 + (i % 3) * 0.012,
+				})
+			end
+		end
+		if not GUI._bubbleStarConnection then
+			GUI._bubbleStarClock = 0
+			GUI._bubbleStarConnection = RunService.RenderStepped:Connect(function(dt)
+				if _destroyed then return end
+				GUI._bubbleStarClock = (GUI._bubbleStarClock or 0) + dt
+				if not minimizeBubble or not minimizeBubble.Visible then return end
+				for _, d in ipairs(minimizeBubbleInner and minimizeBubbleInner:GetDescendants() or {}) do
+					if d.Name == "BubbleSpaceOrbit" then
+						d.Rotation = d.Rotation + (d.AbsoluteSize.X > 30 and 18 or -28) * dt
+					end
+				end
+				for _, item in ipairs(GUI._bubbleStars or {}) do
+					local o = item.obj
+					if o and o.Parent then
+						local t = GUI._bubbleStarClock * item.speed + item.phase
+						o.Position = UDim2.fromScale(
+							math.clamp(item.baseX + math.sin(t) * item.range, 0.12, 0.88),
+							math.clamp(item.baseY + math.cos(t * 0.78) * item.range, 0.12, 0.88)
+						)
+						o.BackgroundTransparency = 0.06 + (math.sin(t * 1.7) + 1) * 0.22
+					end
+				end
+			end)
+			track(GUI._bubbleStarConnection)
 		end
 
 		-- Icon-free modern center mark: two soft accent pills + one muted base pill.
@@ -2292,18 +2376,15 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			end
 		end))
 		minimizeBubble.MouseEnter:Connect(function()
-			tw(minimizeBubble, {BackgroundColor3 = Library.Theme.SurfaceHover})
+			local hover = (Library.Theme.SurfaceHover or Library.Theme.Surface):Lerp(Library.Theme.Accent, 0.12)
+			tw(minimizeBubble, {BackgroundColor3 = hover})
 			if minimizeBubbleStroke then tw(minimizeBubbleStroke, {Color = Color3.fromRGB(255,255,255)}) end
-			if minimizeBubbleGlow then tw(minimizeBubbleGlow, {BackgroundTransparency = 0.62}) end
+			if minimizeBubbleGlow then tw(minimizeBubbleGlow, {BackgroundTransparency = 0.56}) end
 			if minimizeBubbleInner then tw(minimizeBubbleInner, {Size = UDim2.new(0, 45, 0, 45)}) end
-			if minimizeBubbleAccent then tw(minimizeBubbleAccent, {Size = UDim2.new(0, 34, 0, 4)}) end
 		end)
 		minimizeBubble.MouseLeave:Connect(function()
-			tw(minimizeBubble, {BackgroundColor3 = Library.Theme.Surface})
-			if minimizeBubbleStroke then tw(minimizeBubbleStroke, {Color = Library.Theme.Accent}) end
-			if minimizeBubbleGlow then tw(minimizeBubbleGlow, {BackgroundTransparency = 0.78}) end
+			_styleMinimizeBubble()
 			if minimizeBubbleInner then tw(minimizeBubbleInner, {Size = UDim2.new(0, 42, 0, 42)}) end
-			if minimizeBubbleAccent then tw(minimizeBubbleAccent, {Size = UDim2.new(0, 28, 0, 4)}) end
 		end)
 		_styleMinimizeBubble()
 		return minimizeBubble
@@ -2527,12 +2608,11 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		pcall(function() GUI:SaveConfig(true) end)
 	end
 	function GUI:SetWatermarkStatsVisible(state, silent)
-		-- Always-on top-left FPS / ping stats. The argument is kept only for API compatibility.
-		wmStatsVisible = true
+		wmStatsVisible = state ~= false
 		_syncWatermarkStats()
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkStats then pcall(GUI._cfgSyncCallbacks.watermarkStats, true) end
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkStats then pcall(GUI._cfgSyncCallbacks.watermarkStats, wmStatsVisible) end
 		if not silent then pcall(function() GUI:SaveConfig(true) end) end
-		return true
+		return wmStatsVisible
 	end
 	function GUI:GetWatermarkStatsVisible() return wmStatsVisible == true end
 	function GUI:SetWatermarkText(text)
@@ -2690,10 +2770,10 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	function GUI:StopActivity() _stopAllActivity() end
 	function GUI:Close() GUI:Destroy() end
 	function GUI:SetResponsiveScale(state)
-		-- Always-on responsive scaling. The argument is kept only for API compatibility.
-		_responsiveScaleEnabled = true
-		_applyResponsiveScale(true)
-		return true
+		_responsiveScaleEnabled = state ~= false
+		if _responsiveScaleEnabled then _applyResponsiveScale(true) end
+		pcall(function() GUI:SaveConfig(true) end)
+		return _responsiveScaleEnabled
 	end
 	function GUI:GetResponsiveScale() return _responsiveScaleEnabled == true end
 	function GUI:SetResizeSnapEnabled(state)
@@ -4624,7 +4704,7 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			watermarkScaleY = wmFrame and wmFrame.Position.Y.Scale or 0,
 			minimizeBubbleX = minimizeBubble and minimizeBubble.Position.X.Offset or 18,
 			minimizeBubbleY = minimizeBubble and minimizeBubble.Position.Y.Offset or 78,
-			responsiveScale = true,
+			responsiveScale = _responsiveScaleEnabled == true,
 			resizeSnap = _resizeSnapEnabled == true,
 			resizeSnapMode = _resizeSnapMode,
 			dragBounds = options.dragBounds == true,
@@ -4855,9 +4935,9 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		MainWrap.Size = UDim2.new(0, sw, 0, minimized and 34 or sh)
 		task.defer(function() if not _destroyed then applyWindowScale(false, minimized and 34 or nil); _applyResponsiveScale(true) end end)
 		if GUI._cfgSyncCallbacks.scale then pcall(GUI._cfgSyncCallbacks.scale, currentScale) end
-		-- 5.12+: keep responsive scaling on even if an older config saved it as false.
-		_responsiveScaleEnabled = true
-		if GUI._cfgSyncCallbacks.responsiveScale then pcall(GUI._cfgSyncCallbacks.responsiveScale, true) end
+		-- 5.19+: responsive scaling is on by default but can be toggled off in Settings.
+		_responsiveScaleEnabled = data.responsiveScale ~= false
+		if GUI._cfgSyncCallbacks.responsiveScale then pcall(GUI._cfgSyncCallbacks.responsiveScale, _responsiveScaleEnabled) end
 		_resizeSnapEnabled = data.resizeSnap ~= false
 		_resizeSnapMode = tostring(data.resizeSnapMode or _resizeSnapMode or "center"):lower()
 		if GUI._cfgSyncCallbacks.resizeSnap then pcall(GUI._cfgSyncCallbacks.resizeSnap, _resizeSnapEnabled) end
@@ -4880,8 +4960,8 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		if floatingMiniAllowed and miniFrame and data.miniX and data.miniY then
 			miniFrame.Position = UDim2.new(0, tonumber(data.miniX) or 14, 0, tonumber(data.miniY) or 14)
 		end
-		-- 5.12: FPS / ping stats are shown by default and old configs cannot hide them on load.
-		wmStatsVisible = true
+		-- 5.19: FPS / ping stats are on by default but can be toggled off in Settings.
+		wmStatsVisible = data.watermarkStatsVisible ~= false
 		_syncWatermarkStats()
 		if GUI._cfgSyncCallbacks.watermarkStats then pcall(GUI._cfgSyncCallbacks.watermarkStats, wmStatsVisible) end
 		if wmFrame then
@@ -5397,18 +5477,16 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		local responsiveToggle
 		responsiveToggle = S:Toggle({
 			name        = "Responsive Scale",
-			description = "Always on: auto-fits the UI when the Roblox window/screen size changes",
-			default     = true,
+			description = "Auto-fit the UI when the Roblox window/screen size changes",
+			default     = GUI:GetResponsiveScale(),
 			flag        = "responsiveScale",
-			tooltip     = "Always enabled so the UI stays usable on smaller or resized screens.",
+			tooltip     = "Turn this off if you want the window to keep its exact manual size.",
 			callback    = function(state)
-				GUI:SetResponsiveScale(true)
-				if responsiveToggle then task.defer(function() pcall(function() responsiveToggle:Set(true, true) end) end) end
-				GUI:SaveConfig(true)
+				GUI:SetResponsiveScale(state)
 			end,
 		})
 		GUI._cfgSyncCallbacks.responsiveScale = function(v)
-			pcall(function() responsiveToggle:Set(true, true) end)
+			pcall(function() responsiveToggle:Set(v ~= false, true) end)
 		end
 
 		S:Info({ text = "Window drag now allows the UI to move partly outside the screen while keeping a small grab area visible." })
@@ -5416,19 +5494,19 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		S:Section({ name = "Top Right Mini UI" })
 		local watermarkStatsToggle = S:Toggle({
 			name        = "Show FPS / Ping",
-			description = "Always on by default: live FPS and ping in the top-right mini bar",
+			description = "Show or hide live FPS and ping in the top-right mini bar",
 			default     = GUI:GetWatermarkStatsVisible(),
 			flag        = "watermarkStatsVisible",
 			tooltip     = "This updates the top-right watermark/mini bar, not the separate floating HUD.",
 			callback    = function(state)
-				GUI:SetWatermarkStatsVisible(true)
+				GUI:SetWatermarkStatsVisible(state)
 			end,
 		})
 		GUI._cfgSyncCallbacks.watermarkStats = function(v)
 			pcall(function() watermarkStatsToggle:Set(v, true) end)
 		end
 		S:Button({
-			name        = "Reset Top Left Position",
+			name        = "Reset Top Right Position",
 			description = "Moves the top-right mini bar back to its default spot",
 			callback    = function()
 				GUI:ResetWatermarkPosition()
