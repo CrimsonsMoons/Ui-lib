@@ -1,0 +1,1275 @@
+--[[
+    NewMainUI FIXED UNIVERSAL
+    Compile-safe Ventura/NewMainUI compatible UI library.
+    Drop this file into your GitHub raw NewMainUI link.
+
+    Fixes:
+    - No massive Library:new register overflow
+    - No broken multiline gsub strings
+    - Works with CoreGui, gethui, PlayerGui fallback
+    - Mobile drag support
+    - RightCtrl toggle + restore bubble
+    - Optional UI preference saving only when file API exists
+    - Compatible with lowercase and Mercury-style uppercase option names
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local TextService = game:GetService("TextService")
+
+local LocalPlayer = Players.LocalPlayer
+local Library = {}
+Library.Version = "5.34-universal-compile-safe"
+
+Library.Icons = {
+    home="🏠", settings="⚙️", gear="⚙️", menu="📋", search="🔍", close="❌", check="✅",
+    plus="➕", minus="➖", star="⭐", heart="❤️", bolt="⚡", zap="⚡", crown="👑",
+    user="👤", users="👥", folder="📁", file="📄", save="💾", trash="🗑️", delete="🗑️",
+    bell="🔔", info="ℹ️", warning="⚠️", success="✅", error2="❌", question="❓",
+    bug="🐛", package="📦", server="🖥️", mobile="📱", console="⌨️", wrench="🔧",
+    palette="🎨", theme="🎨", color="🖌️", fire="🔥", ice="❄️", world="🌐", map="🗺️",
+    lock="🔒", unlock="🔓", key="🔑", shield="🛡️", eye="👁️", sparkle="✨",
+    target="🎯", trophy="🏆", robot="🤖", sword="⚔️", gun="🔫", shop="🛒", coins="🪙",
+    gem="💎", chest="📦", speed="💨", fly="✈️", invisible="👻", skull="💀", explosion="💥",
+    esp="◎", aimbot="⊕", tp="⊛"
+}
+
+Library.Accents = {
+    Blue=Color3.fromRGB(100,150,255), Purple=Color3.fromRGB(170,95,255), Crimson=Color3.fromRGB(255,70,90),
+    Rose=Color3.fromRGB(255,90,150), Magenta=Color3.fromRGB(220,80,255), Cyan=Color3.fromRGB(60,210,255),
+    Teal=Color3.fromRGB(45,220,190), Emerald=Color3.fromRGB(70,220,130), Gold=Color3.fromRGB(255,190,70),
+    Orange=Color3.fromRGB(255,130,55), White=Color3.fromRGB(235,235,245), Electric=Color3.fromRGB(90,120,255),
+    Violet=Color3.fromRGB(145,95,255), Sky=Color3.fromRGB(85,180,255), Aqua=Color3.fromRGB(70,245,230),
+    Mint=Color3.fromRGB(95,255,185), Toxic=Color3.fromRGB(190,255,55), Amber=Color3.fromRGB(255,175,45),
+    HotPink=Color3.fromRGB(255,75,190), Graphite=Color3.fromRGB(165,170,185), Starlight=Color3.fromRGB(115,185,255),
+    Nova=Color3.fromRGB(80,150,255), Plasma=Color3.fromRGB(185,75,255), Aurora=Color3.fromRGB(85,255,210),
+    Flame=Color3.fromRGB(255,88,35), DeepSea=Color3.fromRGB(45,170,255), Cherry=Color3.fromRGB(255,80,135),
+    Luxury=Color3.fromRGB(255,205,75), Blood=Color3.fromRGB(255,65,92), VoidViolet=Color3.fromRGB(125,80,255)
+}
+
+Library.Themes = {
+    Dark={Background=Color3.fromRGB(20,20,24), Surface=Color3.fromRGB(28,28,34), SurfaceHover=Color3.fromRGB(36,36,44), Nav=Color3.fromRGB(17,17,21), Topbar=Color3.fromRGB(15,15,19), Border=Color3.fromRGB(50,50,60), BorderHover=Color3.fromRGB(86,86,105), TextPrimary=Color3.fromRGB(230,230,238), TextSecondary=Color3.fromRGB(145,145,160), TextDisabled=Color3.fromRGB(86,86,98), Accent=Color3.fromRGB(100,150,255), Stars=true},
+    Midnight={Background=Color3.fromRGB(11,15,28), Surface=Color3.fromRGB(17,23,42), SurfaceHover=Color3.fromRGB(25,35,60), Nav=Color3.fromRGB(8,12,22), Topbar=Color3.fromRGB(7,10,19), Border=Color3.fromRGB(34,46,72), BorderHover=Color3.fromRGB(56,78,120), TextPrimary=Color3.fromRGB(225,234,255), TextSecondary=Color3.fromRGB(135,155,190), TextDisabled=Color3.fromRGB(72,88,115), Accent=Color3.fromRGB(90,120,255), Stars=true},
+    Obsidian={Background=Color3.fromRGB(13,13,15), Surface=Color3.fromRGB(20,20,23), SurfaceHover=Color3.fromRGB(29,29,34), Nav=Color3.fromRGB(9,9,11), Topbar=Color3.fromRGB(7,7,9), Border=Color3.fromRGB(42,42,48), BorderHover=Color3.fromRGB(75,75,86), TextPrimary=Color3.fromRGB(238,238,242), TextSecondary=Color3.fromRGB(150,150,158), TextDisabled=Color3.fromRGB(80,80,90), Accent=Color3.fromRGB(165,170,185), Stars=true},
+    Crimson={Background=Color3.fromRGB(34,16,19), Surface=Color3.fromRGB(45,21,25), SurfaceHover=Color3.fromRGB(58,27,32), Nav=Color3.fromRGB(28,11,14), Topbar=Color3.fromRGB(24,9,12), Border=Color3.fromRGB(74,34,40), BorderHover=Color3.fromRGB(120,54,64), TextPrimary=Color3.fromRGB(255,232,235), TextSecondary=Color3.fromRGB(195,130,140), TextDisabled=Color3.fromRGB(112,70,78), Accent=Color3.fromRGB(255,70,90), Stars=true},
+    Royal={Background=Color3.fromRGB(25,18,42), Surface=Color3.fromRGB(35,25,58), SurfaceHover=Color3.fromRGB(47,35,78), Nav=Color3.fromRGB(19,13,34), Topbar=Color3.fromRGB(16,11,30), Border=Color3.fromRGB(65,48,95), BorderHover=Color3.fromRGB(105,78,145), TextPrimary=Color3.fromRGB(241,232,255), TextSecondary=Color3.fromRGB(165,145,200), TextDisabled=Color3.fromRGB(95,82,118), Accent=Color3.fromRGB(145,95,255), Stars=true},
+    Teal={Background=Color3.fromRGB(11,31,33), Surface=Color3.fromRGB(15,43,45), SurfaceHover=Color3.fromRGB(20,57,60), Nav=Color3.fromRGB(8,25,27), Topbar=Color3.fromRGB(6,21,23), Border=Color3.fromRGB(32,76,80), BorderHover=Color3.fromRGB(48,125,130), TextPrimary=Color3.fromRGB(225,255,252), TextSecondary=Color3.fromRGB(135,200,195), TextDisabled=Color3.fromRGB(70,120,118), Accent=Color3.fromRGB(45,220,190), Stars=true},
+    Forest={Background=Color3.fromRGB(14,28,18), Surface=Color3.fromRGB(20,40,26), SurfaceHover=Color3.fromRGB(28,55,36), Nav=Color3.fromRGB(10,22,14), Topbar=Color3.fromRGB(8,18,12), Border=Color3.fromRGB(39,72,48), BorderHover=Color3.fromRGB(62,120,78), TextPrimary=Color3.fromRGB(232,255,238), TextSecondary=Color3.fromRGB(145,195,155), TextDisabled=Color3.fromRGB(80,120,88), Accent=Color3.fromRGB(70,220,130), Stars=true},
+    Solar={Background=Color3.fromRGB(37,27,18), Surface=Color3.fromRGB(50,37,25), SurfaceHover=Color3.fromRGB(66,49,33), Nav=Color3.fromRGB(31,22,14), Topbar=Color3.fromRGB(26,18,11), Border=Color3.fromRGB(84,62,38), BorderHover=Color3.fromRGB(135,98,55), TextPrimary=Color3.fromRGB(255,244,224), TextSecondary=Color3.fromRGB(208,165,112), TextDisabled=Color3.fromRGB(118,88,55), Accent=Color3.fromRGB(255,175,45), Stars=true},
+    Space={Background=Color3.fromRGB(5,7,18), Surface=Color3.fromRGB(12,16,34), SurfaceHover=Color3.fromRGB(20,27,54), Nav=Color3.fromRGB(7,10,24), Topbar=Color3.fromRGB(4,6,16), Border=Color3.fromRGB(36,50,92), BorderHover=Color3.fromRGB(90,125,210), TextPrimary=Color3.fromRGB(235,244,255), TextSecondary=Color3.fromRGB(145,170,220), TextDisabled=Color3.fromRGB(76,92,135), Accent=Color3.fromRGB(115,185,255), Stars=true},
+    Galaxy={Background=Color3.fromRGB(9,6,24), Surface=Color3.fromRGB(18,12,40), SurfaceHover=Color3.fromRGB(31,20,62), Nav=Color3.fromRGB(7,5,20), Topbar=Color3.fromRGB(5,3,16), Border=Color3.fromRGB(54,38,96), BorderHover=Color3.fromRGB(120,82,210), TextPrimary=Color3.fromRGB(246,240,255), TextSecondary=Color3.fromRGB(180,150,230), TextDisabled=Color3.fromRGB(95,76,140), Accent=Color3.fromRGB(170,95,255), Stars=true},
+    Aurora={Background=Color3.fromRGB(5,18,24), Surface=Color3.fromRGB(10,34,42), SurfaceHover=Color3.fromRGB(16,54,65), Nav=Color3.fromRGB(4,14,20), Topbar=Color3.fromRGB(3,11,16), Border=Color3.fromRGB(28,82,90), BorderHover=Color3.fromRGB(70,180,170), TextPrimary=Color3.fromRGB(230,255,250), TextSecondary=Color3.fromRGB(140,220,205), TextDisabled=Color3.fromRGB(70,125,125), Accent=Color3.fromRGB(85,255,210), Stars=true},
+    Void={Background=Color3.fromRGB(3,3,8), Surface=Color3.fromRGB(10,10,18), SurfaceHover=Color3.fromRGB(18,18,30), Nav=Color3.fromRGB(2,2,6), Topbar=Color3.fromRGB(1,1,5), Border=Color3.fromRGB(34,34,58), BorderHover=Color3.fromRGB(90,90,140), TextPrimary=Color3.fromRGB(238,238,255), TextSecondary=Color3.fromRGB(145,145,185), TextDisabled=Color3.fromRGB(75,75,105), Accent=Color3.fromRGB(125,80,255), Stars=true},
+    Ocean={Background=Color3.fromRGB(5,18,34), Surface=Color3.fromRGB(9,32,58), SurfaceHover=Color3.fromRGB(14,50,84), Nav=Color3.fromRGB(3,13,25), Topbar=Color3.fromRGB(2,10,20), Border=Color3.fromRGB(24,72,112), BorderHover=Color3.fromRGB(55,170,245), TextPrimary=Color3.fromRGB(230,248,255), TextSecondary=Color3.fromRGB(140,200,235), TextDisabled=Color3.fromRGB(70,115,150), Accent=Color3.fromRGB(45,170,255), Stars=true}
+}
+
+Library.Theme = {}
+for key, value in pairs(Library.Themes.Dark) do
+    Library.Theme[key] = value
+end
+
+local function opt(t, lower, upper, default)
+    if type(t) ~= "table" then return default end
+    local value = t[lower]
+    if value == nil and upper then value = t[upper] end
+    if value == nil then value = default end
+    return value
+end
+
+local function safeCall(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local ok, result = pcall(fn, ...)
+    if not ok then warn("[NewMainUI] callback error: " .. tostring(result)) end
+    return result
+end
+
+local function tween(object, goal, time)
+    if not object then return nil end
+    local ok, tw = pcall(function()
+        return TweenService:Create(object, TweenInfo.new(time or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), goal)
+    end)
+    if ok and tw then tw:Play(); return tw end
+    for k, v in pairs(goal) do pcall(function() object[k] = v end) end
+    return nil
+end
+
+local function corner(parent, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = parent
+    return c
+end
+
+local function stroke(parent, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.Color = color or Color3.fromRGB(50,50,60)
+    s.Thickness = thickness or 1
+    s.Parent = parent
+    return s
+end
+
+local function padding(parent, a, b, c, d)
+    local p = Instance.new("UIPadding")
+    p.PaddingTop = UDim.new(0, a or 0)
+    p.PaddingRight = UDim.new(0, b or a or 0)
+    p.PaddingBottom = UDim.new(0, c or a or 0)
+    p.PaddingLeft = UDim.new(0, d or b or a or 0)
+    p.Parent = parent
+    return p
+end
+
+local function label(parent, text, size, color, bold)
+    local l = Instance.new("TextLabel")
+    l.BackgroundTransparency = 1
+    l.BorderSizePixel = 0
+    l.Text = tostring(text or "")
+    l.TextColor3 = color or Library.Theme.TextPrimary
+    l.TextSize = size or 13
+    l.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.TextYAlignment = Enum.TextYAlignment.Center
+    l.TextTruncate = Enum.TextTruncate.AtEnd
+    l.Parent = parent
+    return l
+end
+
+local function buttonBase(parent)
+    local b = Instance.new("TextButton")
+    b.AutoButtonColor = false
+    b.Text = ""
+    b.BorderSizePixel = 0
+    b.Parent = parent
+    return b
+end
+
+local function getRootGui()
+    local root
+    pcall(function()
+        if type(gethui) == "function" then root = gethui() end
+    end)
+    if root then return root end
+    pcall(function() root = CoreGui end)
+    if root then return root end
+    if LocalPlayer then
+        local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+        if pg then return pg end
+    end
+    return game:GetService("StarterGui")
+end
+
+local function protectGui(gui)
+    pcall(function()
+        if syn and type(syn.protect_gui) == "function" then syn.protect_gui(gui) end
+    end)
+end
+
+local function destroyOld(name)
+    local roots = {}
+    local r = getRootGui()
+    if r then table.insert(roots, r) end
+    if LocalPlayer then
+        local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+        if pg then table.insert(roots, pg) end
+    end
+    for _, root in ipairs(roots) do
+        for _, child in ipairs(root:GetChildren()) do
+            if child:IsA("ScreenGui") and (child.Name == name or child.Name == "VenturaUI") then
+                pcall(function() child:Destroy() end)
+            end
+        end
+    end
+end
+
+local function hasFileApi()
+    return type(writefile) == "function" and type(readfile) == "function" and type(isfile) == "function" and type(isfolder) == "function" and type(makefolder) == "function"
+end
+
+local function sanitizeFileName(s)
+    return tostring(s or "Default"):gsub("[^%w_%-]", "_")
+end
+
+local function colorToHex(c)
+    return string.format("%02X%02X%02X", math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5))
+end
+
+local function hexToColor(hex, fallback)
+    hex = tostring(hex or ""):gsub("#", "")
+    if #hex ~= 6 or not hex:match("^[%da-fA-F]+$") then return fallback end
+    return Color3.fromRGB(tonumber(hex:sub(1,2),16) or 0, tonumber(hex:sub(3,4),16) or 0, tonumber(hex:sub(5,6),16) or 0)
+end
+
+local function textSize(text, size, font)
+    local ok, bounds = pcall(function()
+        return TextService:GetTextSize(tostring(text or ""), size or 12, font or Enum.Font.Gotham, Vector2.new(10000, 1000))
+    end)
+    if ok then return bounds end
+    return Vector2.new(#tostring(text or "") * 7, 18)
+end
+
+local function makeDraggable(frame, dragHandle, onFinished)
+    local dragging = false
+    local dragStart
+    local startPos
+
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if not dragging then return end
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement and input.UserInputType ~= Enum.UserInputType.Touch then return end
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging and onFinished then safeCall(onFinished) end
+            dragging = false
+        end
+    end)
+end
+
+local function newThemeState(themeName, accent)
+    local theme = nil
+    if type(themeName) == "table" then
+        theme = themeName
+    else
+        theme = Library.Themes[tostring(themeName or "Dark")] or Library.Themes.Dark
+    end
+    local state = {}
+    for k, v in pairs(theme) do state[k] = v end
+    if accent then state.Accent = accent end
+    return state
+end
+
+local function applyThemeTable(target, theme)
+    for k, v in pairs(theme) do
+        Library.Theme[k] = v
+    end
+    if target and target._themeObjects then
+        for i = #target._themeObjects, 1, -1 do
+            local item = target._themeObjects[i]
+            local obj = item.obj
+            if obj and obj.Parent then
+                pcall(function() obj[item.prop] = Library.Theme[item.key] or item.fallback end)
+            else
+                table.remove(target._themeObjects, i)
+            end
+        end
+    end
+    if target and target._accentObjects then
+        for i = #target._accentObjects, 1, -1 do
+            local item = target._accentObjects[i]
+            local obj = item.obj
+            if obj and obj.Parent then
+                pcall(function() obj[item.prop] = Library.Theme.Accent end)
+            else
+                table.remove(target._accentObjects, i)
+            end
+        end
+    end
+end
+
+local function registerTheme(window, obj, prop, key, fallback)
+    table.insert(window._themeObjects, {obj=obj, prop=prop, key=key, fallback=fallback})
+    pcall(function() obj[prop] = Library.Theme[key] or fallback end)
+    return obj
+end
+
+local function registerAccent(window, obj, prop)
+    table.insert(window._accentObjects, {obj=obj, prop=prop or "BackgroundColor3"})
+    pcall(function() obj[prop or "BackgroundColor3"] = Library.Theme.Accent end)
+    return obj
+end
+
+local function createControlFrame(window, parent, height)
+    local frame = Instance.new("Frame")
+    frame.Name = "Control"
+    frame.BackgroundColor3 = Library.Theme.Surface
+    frame.BorderSizePixel = 0
+    frame.Size = UDim2.new(1, 0, 0, height or 44)
+    frame.Parent = parent
+    corner(frame, 8)
+    local st = stroke(frame, Library.Theme.Border, 1)
+    registerTheme(window, frame, "BackgroundColor3", "Surface", Library.Theme.Surface)
+    registerTheme(window, st, "Color", "Border", Library.Theme.Border)
+    return frame
+end
+
+local function resolveParent(host)
+    if host._content then return host._content end
+    if host._parentTab and host._sectionContent then return host._sectionContent end
+    return host.Content or host.Container or host
+end
+
+local ControlMixin = {}
+
+function ControlMixin:Button(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 42)
+    local icon = opt(options, "icon", "Icon", nil)
+    local name = opt(options, "name", "Name", "Button")
+    local desc = opt(options, "description", "Description", nil)
+    local title = label(frame, (icon and tostring(icon) .. "  " or "") .. tostring(name), 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, desc and 4 or 0)
+    title.Size = UDim2.new(1, -24, desc and 0.52 or 1, 0)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    if desc then
+        local d = label(frame, desc, 11, Library.Theme.TextSecondary, false)
+        d.Position = UDim2.new(0, 12, 0.48, 0)
+        d.Size = UDim2.new(1, -24, 0.44, 0)
+        registerTheme(window, d, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+    end
+    local hit = buttonBase(frame)
+    hit.BackgroundTransparency = 1
+    hit.Size = UDim2.new(1, 0, 1, 0)
+    hit.MouseEnter:Connect(function() tween(frame, {BackgroundColor3 = Library.Theme.SurfaceHover}, 0.12) end)
+    hit.MouseLeave:Connect(function() tween(frame, {BackgroundColor3 = Library.Theme.Surface}, 0.12) end)
+    hit.MouseButton1Click:Connect(function() safeCall(opt(options, "callback", "Callback", nil)) end)
+    return {frame=frame, Fire=function() safeCall(opt(options, "callback", "Callback", nil)) end}
+end
+
+function ControlMixin:Toggle(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 48)
+    local icon = opt(options, "icon", "Icon", nil)
+    local name = opt(options, "name", "Name", "Toggle")
+    local desc = opt(options, "description", "Description", nil)
+    local title = label(frame, (icon and tostring(icon) .. "  " or "") .. tostring(name), 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, desc and 5 or 0)
+    title.Size = UDim2.new(1, -78, desc and 0.5 or 1, 0)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    if desc then
+        local d = label(frame, desc, 11, Library.Theme.TextSecondary, false)
+        d.Position = UDim2.new(0, 12, 0.5, 0)
+        d.Size = UDim2.new(1, -78, 0.42, 0)
+        registerTheme(window, d, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+    end
+    local pill = Instance.new("Frame")
+    pill.Name = "TogglePill"
+    pill.Size = UDim2.new(0, 44, 0, 22)
+    pill.Position = UDim2.new(1, -58, 0.5, -11)
+    pill.BorderSizePixel = 0
+    pill.Parent = frame
+    corner(pill, 99)
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 18, 0, 18)
+    knob.Position = UDim2.new(0, 2, 0.5, -9)
+    knob.BackgroundColor3 = Color3.fromRGB(245,245,245)
+    knob.BorderSizePixel = 0
+    knob.Parent = pill
+    corner(knob, 99)
+
+    local value = opt(options, "default", "StartingState", false) == true
+    local callback = opt(options, "callback", "Callback", nil)
+    local control = {frame=frame, Value=value}
+    local function render()
+        if value then
+            pill.BackgroundColor3 = Library.Theme.Accent
+            knob.Position = UDim2.new(1, -20, 0.5, -9)
+        else
+            pill.BackgroundColor3 = Library.Theme.BorderHover
+            knob.Position = UDim2.new(0, 2, 0.5, -9)
+        end
+    end
+    function control:Set(v, silent)
+        value = v == true
+        control.Value = value
+        render()
+        if not silent then safeCall(callback, value) end
+    end
+    function control:Get() return value end
+    local hit = buttonBase(frame)
+    hit.BackgroundTransparency = 1
+    hit.Size = UDim2.new(1, 0, 1, 0)
+    hit.MouseButton1Click:Connect(function() control:Set(not value) end)
+    render()
+    return control
+end
+
+function ControlMixin:Slider(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 58)
+    local name = opt(options, "name", "Name", "Slider")
+    local min = tonumber(opt(options, "min", "Min", 0)) or 0
+    local max = tonumber(opt(options, "max", "Max", 100)) or 100
+    local default = tonumber(opt(options, "default", "Default", min)) or min
+    local suffix = tostring(opt(options, "suffix", "Suffix", ""))
+    local callback = opt(options, "callback", "Callback", nil)
+    local decimals = tonumber(opt(options, "decimals", "Decimals", 0)) or 0
+    local value = math.clamp(default, min, max)
+
+    local title = label(frame, tostring(name), 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, 4)
+    title.Size = UDim2.new(1, -110, 0, 24)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    local valueLabel = label(frame, "", 12, Library.Theme.TextSecondary, true)
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valueLabel.Position = UDim2.new(1, -100, 0, 4)
+    valueLabel.Size = UDim2.new(0, 88, 0, 24)
+    registerTheme(window, valueLabel, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, -24, 0, 6)
+    bar.Position = UDim2.new(0, 12, 1, -18)
+    bar.BackgroundColor3 = Library.Theme.Border
+    bar.BorderSizePixel = 0
+    bar.Parent = frame
+    corner(bar, 99)
+    registerTheme(window, bar, "BackgroundColor3", "Border", Library.Theme.Border)
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(0, 0, 1, 0)
+    fill.BackgroundColor3 = Library.Theme.Accent
+    fill.BorderSizePixel = 0
+    fill.Parent = bar
+    corner(fill, 99)
+    registerAccent(window, fill, "BackgroundColor3")
+
+    local control = {frame=frame, Value=value}
+    local dragging = false
+    local function format(v)
+        if decimals > 0 then return string.format("%." .. tostring(decimals) .. "f", v) .. suffix end
+        return tostring(math.floor(v + 0.5)) .. suffix
+    end
+    local function setFromX(x, silent)
+        local ratio = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
+        local raw = min + (max - min) * ratio
+        local step = tonumber(opt(options, "step", "Step", nil))
+        if step and step > 0 then raw = math.floor(raw / step + 0.5) * step end
+        control:Set(raw, silent)
+    end
+    function control:Set(v, silent)
+        value = math.clamp(tonumber(v) or min, min, max)
+        control.Value = value
+        local ratio = (value - min) / math.max(max - min, 1)
+        fill.Size = UDim2.new(ratio, 0, 1, 0)
+        valueLabel.Text = format(value)
+        if not silent then safeCall(callback, value) end
+    end
+    function control:Get() return value end
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            setFromX(input.Position.X)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            setFromX(input.Position.X)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+    control:Set(value, true)
+    return control
+end
+
+function ControlMixin:Dropdown(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 46)
+    local name = opt(options, "name", "Name", "Dropdown")
+    local items = opt(options, "items", "Items", opt(options, "values", "Values", {}))
+    local default = opt(options, "default", "Default", items[1])
+    local callback = opt(options, "callback", "Callback", nil)
+    local value = default
+    local open = false
+
+    local title = label(frame, tostring(name), 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.Size = UDim2.new(0.42, -12, 1, 0)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    local box = buttonBase(frame)
+    box.Position = UDim2.new(0.43, 0, 0, 8)
+    box.Size = UDim2.new(0.57, -12, 1, -16)
+    box.BackgroundColor3 = Library.Theme.Background
+    box.Text = tostring(value or "Select") .. "  ▼"
+    box.TextColor3 = Library.Theme.TextPrimary
+    box.TextSize = 12
+    box.Font = Enum.Font.Gotham
+    box.Parent = frame
+    corner(box, 7)
+    local bst = stroke(box, Library.Theme.Border, 1)
+    registerTheme(window, box, "BackgroundColor3", "Background", Library.Theme.Background)
+    registerTheme(window, box, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    registerTheme(window, bst, "Color", "Border", Library.Theme.Border)
+
+    local listFrame = Instance.new("Frame")
+    listFrame.Name = "DropdownList"
+    listFrame.BackgroundColor3 = Library.Theme.Surface
+    listFrame.BorderSizePixel = 0
+    listFrame.Visible = false
+    listFrame.ZIndex = 50
+    listFrame.ClipsDescendants = true
+    listFrame.Parent = frame
+    corner(listFrame, 8)
+    local lst = stroke(listFrame, Library.Theme.BorderHover, 1)
+    registerTheme(window, listFrame, "BackgroundColor3", "Surface", Library.Theme.Surface)
+    registerTheme(window, lst, "Color", "BorderHover", Library.Theme.BorderHover)
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = listFrame
+
+    local control = {frame=frame, Value=value}
+    local function rebuild()
+        for _, child in ipairs(listFrame:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+        local count = 0
+        for _, item in ipairs(items or {}) do
+            count = count + 1
+            local row = buttonBase(listFrame)
+            row.Size = UDim2.new(1, 0, 0, 28)
+            row.BackgroundColor3 = Library.Theme.Surface
+            row.Text = tostring(item)
+            row.TextColor3 = Library.Theme.TextPrimary
+            row.TextSize = 12
+            row.Font = Enum.Font.Gotham
+            row.ZIndex = 51
+            registerTheme(window, row, "BackgroundColor3", "Surface", Library.Theme.Surface)
+            registerTheme(window, row, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+            row.MouseEnter:Connect(function() row.BackgroundColor3 = Library.Theme.SurfaceHover end)
+            row.MouseLeave:Connect(function() row.BackgroundColor3 = Library.Theme.Surface end)
+            row.MouseButton1Click:Connect(function()
+                control:Set(item)
+                open = false
+                listFrame.Visible = false
+            end)
+        end
+        listFrame.Size = UDim2.new(0.57, -12, 0, math.min(count, 6) * 28)
+        listFrame.Position = UDim2.new(0.43, 0, 1, 2)
+    end
+    function control:Set(v, silent)
+        value = v
+        control.Value = value
+        box.Text = tostring(value or "Select") .. "  ▼"
+        if not silent then safeCall(callback, value) end
+    end
+    function control:Get() return value end
+    function control:SetItems(newItems)
+        items = newItems or {}
+        rebuild()
+    end
+    box.MouseButton1Click:Connect(function()
+        open = not open
+        listFrame.Visible = open
+    end)
+    rebuild()
+    return control
+end
+
+function ControlMixin:TextInput(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 48)
+    local name = opt(options, "name", "Name", "TextInput")
+    local placeholder = opt(options, "placeholder", "Placeholder", "Type here...")
+    local default = tostring(opt(options, "default", "Default", ""))
+    local callback = opt(options, "callback", "Callback", nil)
+
+    local title = label(frame, tostring(name), 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.Size = UDim2.new(0.36, -12, 1, 0)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    local box = Instance.new("TextBox")
+    box.Position = UDim2.new(0.37, 0, 0, 8)
+    box.Size = UDim2.new(0.63, -12, 1, -16)
+    box.BackgroundColor3 = Library.Theme.Background
+    box.BorderSizePixel = 0
+    box.Text = default
+    box.PlaceholderText = tostring(placeholder)
+    box.TextColor3 = Library.Theme.TextPrimary
+    box.PlaceholderColor3 = Library.Theme.TextDisabled
+    box.TextSize = 12
+    box.Font = Enum.Font.Gotham
+    box.ClearTextOnFocus = opt(options, "clearTextOnFocus", "ClearTextOnFocus", false) == true
+    box.Parent = frame
+    corner(box, 7)
+    local st = stroke(box, Library.Theme.Border, 1)
+    registerTheme(window, box, "BackgroundColor3", "Background", Library.Theme.Background)
+    registerTheme(window, box, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    registerTheme(window, box, "PlaceholderColor3", "TextDisabled", Library.Theme.TextDisabled)
+    registerTheme(window, st, "Color", "Border", Library.Theme.Border)
+    local control = {frame=frame, Value=default}
+    function control:Set(v, silent)
+        control.Value = tostring(v or "")
+        box.Text = control.Value
+        if not silent then safeCall(callback, control.Value) end
+    end
+    function control:Get() return box.Text end
+    box.FocusLost:Connect(function(enter)
+        control.Value = box.Text
+        if opt(options, "callbackOnEnterOnly", "CallbackOnEnterOnly", false) ~= true or enter then
+            safeCall(callback, box.Text)
+        end
+    end)
+    return control
+end
+
+function ControlMixin:Label(options)
+    options = type(options) == "table" and options or {name=tostring(options or "Label")}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 30)
+    frame.BackgroundTransparency = 1
+    local text = label(frame, opt(options, "name", "Name", opt(options, "text", "Text", "Label")), 13, Library.Theme.TextSecondary, false)
+    text.Position = UDim2.new(0, 6, 0, 0)
+    text.Size = UDim2.new(1, -12, 1, 0)
+    registerTheme(window, text, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+    local control = {frame=frame}
+    function control:Set(v) text.Text = tostring(v or "") end
+    return control
+end
+
+function ControlMixin:Paragraph(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local name = opt(options, "name", "Name", "Paragraph")
+    local text = opt(options, "text", "Text", opt(options, "content", "Content", ""))
+    local h = math.clamp(textSize(text, 12, Enum.Font.Gotham).Y + 42, 48, 120)
+    local frame = createControlFrame(window, parent, h)
+    local title = label(frame, name, 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, 4)
+    title.Size = UDim2.new(1, -24, 0, 22)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    local body = label(frame, text, 12, Library.Theme.TextSecondary, false)
+    body.TextWrapped = true
+    body.TextYAlignment = Enum.TextYAlignment.Top
+    body.Position = UDim2.new(0, 12, 0, 28)
+    body.Size = UDim2.new(1, -24, 1, -34)
+    registerTheme(window, body, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+    local control = {frame=frame}
+    function control:Set(v) body.Text = tostring(v or "") end
+    return control
+end
+
+function ControlMixin:Keybind(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 44)
+    local name = opt(options, "name", "Name", "Keybind")
+    local callback = opt(options, "callback", "Callback", nil)
+    local value = opt(options, "default", "Default", Enum.KeyCode.RightControl)
+    local listening = false
+    local title = label(frame, name, 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.Size = UDim2.new(1, -116, 1, 0)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    local keyBtn = buttonBase(frame)
+    keyBtn.Size = UDim2.new(0, 92, 0, 28)
+    keyBtn.Position = UDim2.new(1, -104, 0.5, -14)
+    keyBtn.BackgroundColor3 = Library.Theme.Background
+    keyBtn.TextColor3 = Library.Theme.TextPrimary
+    keyBtn.TextSize = 12
+    keyBtn.Font = Enum.Font.GothamBold
+    keyBtn.Parent = frame
+    corner(keyBtn, 7)
+    local st = stroke(keyBtn, Library.Theme.Border, 1)
+    registerTheme(window, keyBtn, "BackgroundColor3", "Background", Library.Theme.Background)
+    registerTheme(window, keyBtn, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    registerTheme(window, st, "Color", "Border", Library.Theme.Border)
+    local control = {frame=frame, Value=value}
+    local function refresh() keyBtn.Text = listening and "..." or tostring(value and value.Name or value) end
+    function control:Set(v, silent)
+        value = v
+        control.Value = value
+        refresh()
+        if not silent then safeCall(callback, value) end
+    end
+    function control:Get() return value end
+    keyBtn.MouseButton1Click:Connect(function() listening = true; refresh() end)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if listening and input.UserInputType == Enum.UserInputType.Keyboard then
+            listening = false
+            if input.KeyCode ~= Enum.KeyCode.Escape then control:Set(input.KeyCode) else refresh() end
+        elseif not gpe and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == value then
+            safeCall(callback, value, "pressed")
+        end
+    end)
+    refresh()
+    return control
+end
+
+function ControlMixin:ColorPicker(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local frame = createControlFrame(window, parent, 44)
+    local name = opt(options, "name", "Name", "Color")
+    local value = opt(options, "default", "Default", Library.Theme.Accent)
+    local callback = opt(options, "callback", "Callback", nil)
+    local title = label(frame, name, 13, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.Size = UDim2.new(1, -70, 1, 0)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    local swatch = buttonBase(frame)
+    swatch.Size = UDim2.new(0, 42, 0, 24)
+    swatch.Position = UDim2.new(1, -54, 0.5, -12)
+    swatch.BackgroundColor3 = value
+    swatch.Parent = frame
+    corner(swatch, 7)
+    stroke(swatch, Library.Theme.BorderHover, 1)
+    local presets = {Library.Accents.Blue, Library.Accents.Purple, Library.Accents.Crimson, Library.Accents.Cyan, Library.Accents.Emerald, Library.Accents.Gold, Library.Accents.HotPink, Library.Accents.White}
+    local index = 1
+    local control = {frame=frame, Value=value}
+    function control:Set(v, silent)
+        if typeof(v) == "Color3" then value = v end
+        control.Value = value
+        swatch.BackgroundColor3 = value
+        if not silent then safeCall(callback, value) end
+    end
+    function control:Get() return value end
+    swatch.MouseButton1Click:Connect(function()
+        index = index + 1
+        if index > #presets then index = 1 end
+        control:Set(presets[index])
+    end)
+    return control
+end
+
+function ControlMixin:Section(options)
+    options = options or {}
+    local window = self._window
+    local parent = resolveParent(self)
+    local outer = Instance.new("Frame")
+    outer.Name = "Section"
+    outer.BackgroundTransparency = 1
+    outer.BorderSizePixel = 0
+    outer.AutomaticSize = Enum.AutomaticSize.Y
+    outer.Size = UDim2.new(1, 0, 0, 0)
+    outer.Parent = parent
+
+    local sectionName = opt(options, "name", "Name", "Section")
+    local header = Instance.new("Frame")
+    header.Name = "SectionHeader"
+    header.BackgroundTransparency = 1
+    header.Size = UDim2.new(1, 0, 0, 30)
+    header.Parent = outer
+    local accent = Instance.new("Frame")
+    accent.BackgroundColor3 = Library.Theme.Accent
+    accent.BorderSizePixel = 0
+    accent.Position = UDim2.new(0, 2, 0.5, -7)
+    accent.Size = UDim2.new(0, 3, 0, 14)
+    accent.Parent = header
+    corner(accent, 99)
+    registerAccent(window, accent, "BackgroundColor3")
+    local text = label(header, (opt(options, "icon", "Icon", nil) and tostring(opt(options, "icon", "Icon", nil)) .. "  " or "") .. tostring(sectionName), 13, Library.Theme.TextSecondary, true)
+    text.Position = UDim2.new(0, 12, 0, 0)
+    text.Size = UDim2.new(1, -12, 1, 0)
+    registerTheme(window, text, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+
+    local content = Instance.new("Frame")
+    content.Name = "SectionContent"
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.Position = UDim2.new(0, 0, 0, 30)
+    content.Size = UDim2.new(1, 0, 0, 0)
+    content.AutomaticSize = Enum.AutomaticSize.Y
+    content.Parent = outer
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = content
+
+    local section = {_window=window, _sectionContent=content, _parentTab=self, frame=outer}
+    for k, v in pairs(ControlMixin) do section[k] = v end
+    return section
+end
+
+local function createWindowObject(options)
+    local window = {}
+    window.Options = options
+    window.Tabs = {}
+    window._themeObjects = {}
+    window._accentObjects = {}
+    window._configQueued = false
+    window._destroyed = false
+    window._minimized = false
+    window._activeTab = nil
+    return window
+end
+
+function Library:new(options)
+    options = options or {}
+    local name = opt(options, "name", "Name", "Ventura UI")
+    local themeName = opt(options, "theme", "Theme", "Dark")
+    local accent = opt(options, "accent", "Accent", nil)
+    local toggleKey = opt(options, "toggleKey", "ToggleKey", Enum.KeyCode.RightControl)
+    local watermark = opt(options, "watermark", "Watermark", nil)
+    local autoLoad = opt(options, "autoLoad", "AutoLoad", true) ~= false
+    local profile = sanitizeFileName(opt(options, "configProfile", "ConfigProfile", opt(options, "profile", "Profile", name)))
+
+    local theme = newThemeState(themeName, accent)
+    applyThemeTable(nil, theme)
+    destroyOld("VenturaUI")
+
+    local root = getRootGui()
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "VenturaUI"
+    sg.IgnoreGuiInset = true
+    sg.ResetOnSpawn = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.DisplayOrder = 999999
+    protectGui(sg)
+    sg.Parent = root
+
+    local window = createWindowObject(options)
+    window.ScreenGui = sg
+    window._themeName = type(themeName) == "string" and themeName or "Custom"
+    window._accent = Library.Theme.Accent
+    window._configPath = "VenturaUI/" .. profile .. ".json"
+
+    local main = Instance.new("Frame")
+    main.Name = "MainWindow"
+    main.Size = UDim2.new(0, 620, 0, 430)
+    main.Position = UDim2.new(0.5, -310, 0.5, -215)
+    main.BackgroundColor3 = Library.Theme.Background
+    main.BorderSizePixel = 0
+    main.ClipsDescendants = true
+    main.Parent = sg
+    corner(main, 12)
+    local mainStroke = stroke(main, Library.Theme.BorderHover, 1)
+    registerTheme(window, main, "BackgroundColor3", "Background", Library.Theme.Background)
+    registerTheme(window, mainStroke, "Color", "BorderHover", Library.Theme.BorderHover)
+    window.Main = main
+
+    local stars = Instance.new("Frame")
+    stars.Name = "Stars"
+    stars.BackgroundTransparency = 1
+    stars.BorderSizePixel = 0
+    stars.Size = UDim2.new(1, 0, 1, 0)
+    stars.Parent = main
+    for i = 1, 26 do
+        local dot = Instance.new("Frame")
+        dot.Name = "Star"
+        dot.BorderSizePixel = 0
+        dot.BackgroundColor3 = Color3.fromRGB(255,255,255)
+        dot.BackgroundTransparency = 0.25 + (i % 5) * 0.11
+        local s = (i % 3) + 1
+        dot.Size = UDim2.new(0, s, 0, s)
+        dot.Position = UDim2.new((i * 37 % 100) / 100, 0, (i * 61 % 100) / 100, 0)
+        dot.Parent = stars
+        corner(dot, 99)
+    end
+    RunService.RenderStepped:Connect(function(dt)
+        if window._destroyed or not stars.Parent then return end
+        if Library.Theme.Stars == false then stars.Visible = false; return end
+        stars.Visible = true
+        for _, dot in ipairs(stars:GetChildren()) do
+            if dot:IsA("Frame") then
+                local p = dot.Position
+                local y = p.Y.Scale + dt * 0.01
+                if y > 1 then y = 0 end
+                dot.Position = UDim2.new(p.X.Scale, p.X.Offset, y, p.Y.Offset)
+            end
+        end
+    end)
+
+    local top = Instance.new("Frame")
+    top.Name = "Topbar"
+    top.BackgroundColor3 = Library.Theme.Topbar
+    top.BorderSizePixel = 0
+    top.Size = UDim2.new(1, 0, 0, 48)
+    top.Parent = main
+    registerTheme(window, top, "BackgroundColor3", "Topbar", Library.Theme.Topbar)
+    makeDraggable(main, top, function() window:MarkConfigDirty() end)
+
+    local title = label(top, tostring(name), 16, Library.Theme.TextPrimary, true)
+    title.Position = UDim2.new(0, 16, 0, 6)
+    title.Size = UDim2.new(1, -130, 0, 22)
+    registerTheme(window, title, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+    local sub = label(top, tostring(opt(options, "subtitle", "Subtitle", "NewMainUI Universal")), 11, Library.Theme.TextSecondary, false)
+    sub.Position = UDim2.new(0, 16, 0, 27)
+    sub.Size = UDim2.new(1, -130, 0, 16)
+    registerTheme(window, sub, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+
+    local close = buttonBase(top)
+    close.Size = UDim2.new(0, 30, 0, 30)
+    close.Position = UDim2.new(1, -40, 0, 9)
+    close.BackgroundColor3 = Library.Theme.Surface
+    close.Text = "×"
+    close.TextColor3 = Library.Theme.TextPrimary
+    close.TextSize = 18
+    close.Font = Enum.Font.GothamBold
+    corner(close, 8)
+    registerTheme(window, close, "BackgroundColor3", "Surface", Library.Theme.Surface)
+    registerTheme(window, close, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+
+    local mini = buttonBase(top)
+    mini.Size = UDim2.new(0, 30, 0, 30)
+    mini.Position = UDim2.new(1, -76, 0, 9)
+    mini.BackgroundColor3 = Library.Theme.Surface
+    mini.Text = "–"
+    mini.TextColor3 = Library.Theme.TextPrimary
+    mini.TextSize = 18
+    mini.Font = Enum.Font.GothamBold
+    corner(mini, 8)
+    registerTheme(window, mini, "BackgroundColor3", "Surface", Library.Theme.Surface)
+    registerTheme(window, mini, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+
+    local nav = Instance.new("Frame")
+    nav.Name = "Navigation"
+    nav.BackgroundColor3 = Library.Theme.Nav
+    nav.BorderSizePixel = 0
+    nav.Position = UDim2.new(0, 0, 0, 48)
+    nav.Size = UDim2.new(0, 154, 1, -48)
+    nav.Parent = main
+    registerTheme(window, nav, "BackgroundColor3", "Nav", Library.Theme.Nav)
+    local navPad = padding(nav, 10, 8, 10, 8)
+    local navLayout = Instance.new("UIListLayout")
+    navLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    navLayout.Padding = UDim.new(0, 8)
+    navLayout.Parent = nav
+
+    local pageHolder = Instance.new("Frame")
+    pageHolder.Name = "Pages"
+    pageHolder.BackgroundTransparency = 1
+    pageHolder.BorderSizePixel = 0
+    pageHolder.Position = UDim2.new(0, 154, 0, 48)
+    pageHolder.Size = UDim2.new(1, -154, 1, -48)
+    pageHolder.Parent = main
+    padding(pageHolder, 12, 12, 12, 12)
+
+    local bubble = buttonBase(sg)
+    bubble.Name = "RestoreBubble"
+    bubble.Size = UDim2.new(0, 54, 0, 54)
+    bubble.Position = UDim2.new(0, 18, 0.5, -27)
+    bubble.BackgroundColor3 = Library.Theme.Accent
+    bubble.Text = "☰"
+    bubble.TextColor3 = Color3.fromRGB(255,255,255)
+    bubble.TextSize = 24
+    bubble.Font = Enum.Font.GothamBold
+    bubble.Visible = false
+    bubble.Parent = sg
+    corner(bubble, 999)
+    registerAccent(window, bubble, "BackgroundColor3")
+    makeDraggable(bubble, bubble, function() window:MarkConfigDirty() end)
+
+    local watermarkFrame
+    if watermark then
+        watermarkFrame = Instance.new("Frame")
+        watermarkFrame.Name = "Watermark"
+        watermarkFrame.AnchorPoint = Vector2.new(1, 0)
+        watermarkFrame.Position = UDim2.new(1, -14, 0, 14)
+        watermarkFrame.Size = UDim2.new(0, 190, 0, 30)
+        watermarkFrame.BackgroundColor3 = Library.Theme.Topbar
+        watermarkFrame.BorderSizePixel = 0
+        watermarkFrame.Parent = sg
+        corner(watermarkFrame, 8)
+        local ws = stroke(watermarkFrame, Library.Theme.BorderHover, 1)
+        registerTheme(window, watermarkFrame, "BackgroundColor3", "Topbar", Library.Theme.Topbar)
+        registerTheme(window, ws, "Color", "BorderHover", Library.Theme.BorderHover)
+        local wl = label(watermarkFrame, tostring(watermark), 12, Library.Theme.TextPrimary, true)
+        wl.TextXAlignment = Enum.TextXAlignment.Center
+        wl.Size = UDim2.new(1, -12, 1, 0)
+        wl.Position = UDim2.new(0, 6, 0, 0)
+        registerTheme(window, wl, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+        makeDraggable(watermarkFrame, watermarkFrame, function() window:MarkConfigDirty() end)
+    end
+
+    local function setMinimized(state)
+        window._minimized = state == true
+        main.Visible = not window._minimized
+        bubble.Visible = window._minimized
+    end
+
+    function window:CreateTab(tabOptions)
+        tabOptions = tabOptions or {}
+        local tabName = opt(tabOptions, "name", "Name", "Tab")
+        local tabIcon = opt(tabOptions, "icon", "Icon", "")
+
+        local tabButton = buttonBase(nav)
+        tabButton.Name = "Tab_" .. tostring(tabName)
+        tabButton.Size = UDim2.new(1, 0, 0, 36)
+        tabButton.BackgroundColor3 = Library.Theme.Surface
+        tabButton.TextColor3 = Library.Theme.TextSecondary
+        tabButton.TextSize = 12
+        tabButton.Font = Enum.Font.GothamBold
+        tabButton.TextXAlignment = Enum.TextXAlignment.Left
+        tabButton.Text = "   " .. (tabIcon ~= "" and tostring(tabIcon) .. "  " or "") .. tostring(tabName)
+        corner(tabButton, 8)
+        registerTheme(window, tabButton, "BackgroundColor3", "Surface", Library.Theme.Surface)
+        registerTheme(window, tabButton, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+
+        local page = Instance.new("ScrollingFrame")
+        page.Name = "Page_" .. tostring(tabName)
+        page.BackgroundTransparency = 1
+        page.BorderSizePixel = 0
+        page.ScrollBarThickness = 4
+        page.ScrollBarImageColor3 = Library.Theme.Accent
+        page.CanvasSize = UDim2.new(0, 0, 0, 0)
+        page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        page.Size = UDim2.new(1, 0, 1, 0)
+        page.Visible = false
+        page.Parent = pageHolder
+        registerAccent(window, page, "ScrollBarImageColor3")
+        local content = Instance.new("Frame")
+        content.Name = "Content"
+        content.BackgroundTransparency = 1
+        content.BorderSizePixel = 0
+        content.Size = UDim2.new(1, -6, 0, 0)
+        content.AutomaticSize = Enum.AutomaticSize.Y
+        content.Parent = page
+        local layout = Instance.new("UIListLayout")
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 8)
+        layout.Parent = content
+
+        local tab = {_window=window, _content=content, Button=tabButton, Page=page, Name=tabName}
+        for k, v in pairs(ControlMixin) do tab[k] = v end
+        function tab:Activate()
+            if window._activeTab then
+                window._activeTab.Page.Visible = false
+                window._activeTab.Button.BackgroundColor3 = Library.Theme.Surface
+                window._activeTab.Button.TextColor3 = Library.Theme.TextSecondary
+            end
+            page.Visible = true
+            tabButton.BackgroundColor3 = Library.Theme.Accent
+            tabButton.TextColor3 = Color3.fromRGB(255,255,255)
+            window._activeTab = tab
+        end
+        tabButton.MouseButton1Click:Connect(function() tab:Activate() end)
+        table.insert(window.Tabs, tab)
+        if not window._activeTab then tab:Activate() end
+        return tab
+    end
+
+    function window:Tab(tabOptions) return self:CreateTab(tabOptions) end
+
+    function window:SetTheme(newTheme)
+        if type(newTheme) == "table" then
+            applyThemeTable(self, newTheme)
+            self._themeName = "Custom"
+        else
+            self._themeName = tostring(newTheme or "Dark")
+            local nextTheme = newThemeState(self._themeName, self._accent)
+            applyThemeTable(self, nextTheme)
+        end
+        if self._activeTab then self._activeTab:Activate() end
+        self:MarkConfigDirty()
+        return true
+    end
+
+    function window:SetAccent(color)
+        if typeof(color) ~= "Color3" then return false end
+        self._accent = color
+        Library.Theme.Accent = color
+        applyThemeTable(self, Library.Theme)
+        if self._activeTab then self._activeTab:Activate() end
+        self:MarkConfigDirty()
+        return true
+    end
+
+    function window:SetAccentPreset(preset)
+        local color = Library.Accents[tostring(preset or "")]
+        if not color then return false end
+        return self:SetAccent(color)
+    end
+
+    function window:GetThemes()
+        local out = {}
+        for k in pairs(Library.Themes) do table.insert(out, k) end
+        table.sort(out)
+        return out
+    end
+
+    function window:GetAccentPresets()
+        local out = {}
+        for k in pairs(Library.Accents) do table.insert(out, k) end
+        table.sort(out)
+        return out
+    end
+
+    function window:SetSubtitle(text) sub.Text = tostring(text or "") end
+    function window:SetMinimized(state) setMinimized(state) end
+    function window:IsMinimized() return self._minimized end
+    function window:Toggle() setMinimized(not self._minimized) end
+    function window:GetVersion() return Library.Version end
+
+    window.notify = function(titleText, bodyText, duration)
+        return window:Notify(titleText, bodyText, duration)
+    end
+
+    function window:NavSection() return true end
+
+    function window:Notify(titleText, bodyText, duration)
+        duration = tonumber(duration) or 3
+        local card = Instance.new("Frame")
+        card.Name = "Notification"
+        card.AnchorPoint = Vector2.new(1, 1)
+        card.Position = UDim2.new(1, 340, 1, -18)
+        card.Size = UDim2.new(0, 310, 0, 74)
+        card.BackgroundColor3 = Library.Theme.Surface
+        card.BorderSizePixel = 0
+        card.Parent = sg
+        corner(card, 10)
+        local cs = stroke(card, Library.Theme.BorderHover, 1)
+        registerTheme(window, card, "BackgroundColor3", "Surface", Library.Theme.Surface)
+        registerTheme(window, cs, "Color", "BorderHover", Library.Theme.BorderHover)
+        local bar = Instance.new("Frame")
+        bar.BackgroundColor3 = Library.Theme.Accent
+        bar.BorderSizePixel = 0
+        bar.Position = UDim2.new(0, 8, 0, 10)
+        bar.Size = UDim2.new(0, 3, 1, -20)
+        bar.Parent = card
+        corner(bar, 99)
+        registerAccent(window, bar, "BackgroundColor3")
+        local t = label(card, tostring(titleText or name), 14, Library.Theme.TextPrimary, true)
+        t.Position = UDim2.new(0, 20, 0, 9)
+        t.Size = UDim2.new(1, -30, 0, 24)
+        registerTheme(window, t, "TextColor3", "TextPrimary", Library.Theme.TextPrimary)
+        local b = label(card, tostring(bodyText or ""), 12, Library.Theme.TextSecondary, false)
+        b.Position = UDim2.new(0, 20, 0, 35)
+        b.Size = UDim2.new(1, -30, 0, 28)
+        b.TextWrapped = true
+        registerTheme(window, b, "TextColor3", "TextSecondary", Library.Theme.TextSecondary)
+        tween(card, {Position=UDim2.new(1, -18, 1, -18)}, 0.25)
+        task.delay(duration, function()
+            if card and card.Parent then
+                local tw = tween(card, {Position=UDim2.new(1, 340, 1, -18)}, 0.22)
+                task.delay(0.25, function() if card then card:Destroy() end end)
+            end
+        end)
+        return card
+    end
+
+    function window:MarkConfigDirty()
+        if self._configQueued then return end
+        self._configQueued = true
+        task.delay(0.45, function()
+            if self._destroyed then return end
+            self._configQueued = false
+            self:SaveConfig(true)
+        end)
+    end
+
+    function window:_configPayload()
+        local payload = {
+            theme=self._themeName or "Dark",
+            accent=colorToHex(self._accent or Library.Theme.Accent),
+            x=main.Position.X.Offset,
+            y=main.Position.Y.Offset,
+            bx=bubble.Position.X.Offset,
+            by=bubble.Position.Y.Offset,
+            minimized=self._minimized == true
+        }
+        if watermarkFrame then
+            payload.wx = watermarkFrame.Position.X.Offset
+            payload.wy = watermarkFrame.Position.Y.Offset
+        end
+        return payload
+    end
+
+    function window:SaveConfig(silent)
+        if not hasFileApi() then return false end
+        pcall(function() if not isfolder("VenturaUI") then makefolder("VenturaUI") end end)
+        local ok, encoded = pcall(function() return HttpService:JSONEncode(self:_configPayload()) end)
+        if ok and encoded then
+            pcall(function() writefile(self._configPath, encoded) end)
+            return true
+        end
+        if not silent then warn("[NewMainUI] Could not encode config") end
+        return false
+    end
+
+    function window:LoadConfig()
+        if not hasFileApi() or not isfile(self._configPath) then return false end
+        local ok, raw = pcall(function() return readfile(self._configPath) end)
+        if not ok then return false end
+        local ok2, data = pcall(function() return HttpService:JSONDecode(raw) end)
+        if not ok2 or type(data) ~= "table" then return false end
+        if data.theme then self:SetTheme(data.theme) end
+        if data.accent then self:SetAccent(hexToColor(data.accent, self._accent or Library.Theme.Accent)) end
+        if data.x and data.y then main.Position = UDim2.new(0, tonumber(data.x) or 0, 0, tonumber(data.y) or 0) end
+        if data.bx and data.by then bubble.Position = UDim2.new(0, tonumber(data.bx) or 18, 0, tonumber(data.by) or 180) end
+        if watermarkFrame and data.wx and data.wy then watermarkFrame.Position = UDim2.new(1, tonumber(data.wx) or -14, 0, tonumber(data.wy) or 14) end
+        if data.minimized ~= nil then setMinimized(data.minimized == true) end
+        return true
+    end
+
+    function window:ResetConfig()
+        if hasFileApi() and isfile(self._configPath) then pcall(function() delfile(self._configPath) end) end
+        return true
+    end
+
+    function window:ExportConfig(copy)
+        local ok, encoded = pcall(function() return HttpService:JSONEncode(self:_configPayload()) end)
+        encoded = ok and encoded or "{}"
+        if copy and type(setclipboard) == "function" then pcall(function() setclipboard(encoded) end) end
+        return encoded
+    end
+
+    function window:ImportConfig(raw, saveAfter)
+        local ok, data = pcall(function() return HttpService:JSONDecode(tostring(raw or "")) end)
+        if not ok or type(data) ~= "table" then return false end
+        if data.theme then self:SetTheme(data.theme) end
+        if data.accent then self:SetAccent(hexToColor(data.accent, Library.Theme.Accent)) end
+        if saveAfter then self:SaveConfig(true) end
+        return true
+    end
+
+    function window:Destroy()
+        self._destroyed = true
+        if opt(options, "onClose", "OnClose", nil) then safeCall(opt(options, "onClose", "OnClose", nil)) end
+        pcall(function() sg:Destroy() end)
+    end
+
+    function window:Close() self:Destroy() end
+
+    mini.MouseButton1Click:Connect(function() setMinimized(true) end)
+    bubble.MouseButton1Click:Connect(function() setMinimized(false) end)
+    close.MouseButton1Click:Connect(function() window:Destroy() end)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe or window._destroyed then return end
+        if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == toggleKey then
+            window:Toggle()
+        end
+    end)
+
+    if autoLoad then pcall(function() window:LoadConfig() end) end
+
+    if opt(options, "settingsTab", "SettingsTab", true) ~= false then
+        local settings = window:CreateTab({name="Settings", icon=Library.Icons.settings})
+        settings:Section({name="UI Settings", icon=Library.Icons.palette})
+        settings:Dropdown({name="Theme", items=window:GetThemes(), default=window._themeName or "Dark", callback=function(v) window:SetTheme(v) end})
+        settings:Dropdown({name="Accent", items=window:GetAccentPresets(), default="Blue", callback=function(v) window:SetAccentPreset(v) end})
+        settings:Button({name="Save UI Preferences", icon=Library.Icons.save, callback=function() window:SaveConfig(); window:Notify("Config", "UI preferences saved.", 2) end})
+        settings:Button({name="Reset UI Preferences", icon=Library.Icons.trash, callback=function() window:ResetConfig(); window:Notify("Config", "Saved UI preferences reset.", 2) end})
+        if #window.Tabs > 1 then window.Tabs[1]:Activate() end
+    end
+
+    Library.__lastWindow = window
+    return window
+end
+
+function Library:Create(options)
+    return self:new(options)
+end
+
+function Library:Notify(title, text, duration)
+    local temp = self.__lastWindow
+    if temp and type(temp.Notify) == "function" then return temp:Notify(title, text, duration) end
+end
+
+return Library
