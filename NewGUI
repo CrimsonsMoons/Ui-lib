@@ -19,7 +19,7 @@ local TI_SLOW = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.
 local MOBILE  = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 local Library = {}
-Library.Version = "5.37-statusbar-functions"
+Library.Version = "5.36-statusbar-size"
 
 -- ══════════════════════════════════════════════════════════════════════
 -- ICON SYSTEM
@@ -714,25 +714,10 @@ function Library:new(options)
 		watermarkStats  = true,    -- show FPS + ping in the top-right watermark bar
 		watermarkWidth  = nil,     -- fixed top-right status/watermark width; nil/0 = auto
 		watermarkHeight = 30,      -- fixed top-right status/watermark height
-		watermarkVisible = true,   -- show/hide the top-right status/watermark bar
-		watermarkTextSize = 13,    -- top-right status/watermark text size
-		watermarkTransparency = 0, -- 0 = solid, 1 = invisible background
-		watermarkAccentVisible = true,
-		watermarkAccentWidth = 3,
-		watermarkPaddingLeft = 16,
-		watermarkPaddingRight = 8,
-		watermarkBackgroundColor = nil,
-		watermarkTextColor = nil,
-		watermarkStrokeColor = nil,
 		statusBarWidth  = nil,     -- alias for watermarkWidth
 		statusBarHeight = nil,     -- alias for watermarkHeight
-		statusBarVisible = nil,    -- alias for watermarkVisible
-		statusBarTextSize = nil,   -- alias for watermarkTextSize
-		statusBarTransparency = nil,
 		topRightBarWidth  = nil,   -- alias for watermarkWidth
 		topRightBarHeight = nil,   -- alias for watermarkHeight
-		topRightBarVisible = nil,  -- alias for watermarkVisible
-		topRightBarTextSize = nil, -- alias for watermarkTextSize
 		destroyOnRespawn= false,
 		reconnectOnRespawn = true,
 		reconnectDelay   = 0.85,
@@ -801,7 +786,7 @@ function Library:new(options)
 	local GUI = {CurrentTab=nil, _tabs={}, _open=true, _accentObjects={}, _keybindWidgets={}, _activeKeybind=nil, _configControls={}, _toggleControls={}, _reconnectControls={}, _reconnectCallbacks={}, _loadedConfigData=nil, _configApplying=false, _destroyCallbacks={}, _cleanupCallbacks={}, _trackedProperties={}, _trackedHumanoidProperties={}, _trackedInstances={}, _activityStopped=false, _reconnectEnabled=(options.reconnectOnRespawn ~= false), _reconnectDelay=tonumber(options.reconnectDelay) or 0.85, _respawnToken=0}
 
 	-- Top-right watermark / mini bar stats state
-	local wmFrame, wmLbl, wmBaseText, wmAccent, wmStroke
+	local wmFrame, wmLbl, wmBaseText
 	local wmStatsVisible = options.watermarkStats ~= false
 	-- 5.18: stats bar defaults to top-right so it stays clear of Roblox top-left UI.
 	local WM_DEFAULT_X, WM_DEFAULT_Y = -14, 14
@@ -818,35 +803,8 @@ function Library:new(options)
 		return math.clamp(math.floor((tonumber(v) or 30) + 0.5), WM_MIN_H, WM_MAX_H)
 	end
 
-	local function _cleanWatermarkTextSize(v)
-		return math.clamp(math.floor((tonumber(v) or 13) + 0.5), 8, 28)
-	end
-
-	local function _cleanWatermarkTransparency(v)
-		return math.clamp(tonumber(v) or 0, 0, 1)
-	end
-
-	local function _cleanWatermarkAccentWidth(v)
-		return math.clamp(math.floor((tonumber(v) or 3) + 0.5), 0, 18)
-	end
-
-	local function _cleanWatermarkPadding(v, fallback)
-		return math.clamp(math.floor((tonumber(v) or fallback or 8) + 0.5), 0, 80)
-	end
-
 	local wmWidthOverride = _cleanWatermarkWidth(options.watermarkWidth or options.statusBarWidth or options.topRightBarWidth)
 	local wmHeight = _cleanWatermarkHeight(options.watermarkHeight or options.statusBarHeight or options.topRightBarHeight)
-	local wmVisible = (options.watermarkVisible ~= false) and (options.statusBarVisible ~= false) and (options.topRightBarVisible ~= false)
-	local wmTextSize = _cleanWatermarkTextSize(options.watermarkTextSize or options.statusBarTextSize or options.topRightBarTextSize)
-	local wmTransparency = _cleanWatermarkTransparency(options.watermarkTransparency or options.statusBarTransparency)
-	local wmAccentVisible = options.watermarkAccentVisible ~= false
-	local wmAccentWidth = _cleanWatermarkAccentWidth(options.watermarkAccentWidth)
-	local wmPadLeft = _cleanWatermarkPadding(options.watermarkPaddingLeft, 16)
-	local wmPadRight = _cleanWatermarkPadding(options.watermarkPaddingRight, 8)
-	local wmBackgroundColor = (typeof(options.watermarkBackgroundColor) == "Color3" and options.watermarkBackgroundColor) or Color3.fromRGB(9, 9, 12)
-	local wmTextColor = (typeof(options.watermarkTextColor) == "Color3" and options.watermarkTextColor) or Library.Theme.TextPrimary
-	local wmStrokeColor = (typeof(options.watermarkStrokeColor) == "Color3" and options.watermarkStrokeColor) or (Library.Theme.BorderHover or Library.Theme.Border)
-	local wmFormatter = nil
 
 	-- Predeclared here so viewport-resize snapping can also recover the minimized restore bubble.
 	local minimizeBubble
@@ -1133,7 +1091,7 @@ function Library:new(options)
 	end
 
 	local function _watermarkAutoWidth(text)
-		return math.clamp(textWidth(text, wmTextSize, Enum.Font.RobotoMono) + wmPadLeft + wmPadRight + 14, WM_MIN_W, math.min(WM_MAX_W, 720))
+		return math.clamp(textWidth(text, 13, Enum.Font.RobotoMono) + 38, 130, 720)
 	end
 
 	local function _applyWatermarkLayout(text)
@@ -1141,20 +1099,9 @@ function Library:new(options)
 		local w = wmWidthOverride or _watermarkAutoWidth(text or (wmLbl and wmLbl.Text) or wmBaseText or options.name or "VenturaUI")
 		local h = wmHeight
 		wmFrame.Size = UDim2.new(0, w, 0, h)
-		wmFrame.Visible = wmVisible == true
-		wmFrame.BackgroundTransparency = wmTransparency
-		wmFrame.BackgroundColor3 = wmBackgroundColor
-		if wmStroke then wmStroke.Color = wmStrokeColor end
-		if wmAccent then
-			wmAccent.Visible = wmAccentVisible == true and wmAccentWidth > 0
-			wmAccent.Size = UDim2.new(0, wmAccentWidth, 1, -8)
-			wmAccent.Position = UDim2.new(0, math.max(4, math.floor(wmPadLeft * 0.35)), 0, 4)
-		end
 		if wmLbl then
-			wmLbl.TextSize = wmTextSize
-			wmLbl.TextColor3 = wmTextColor
-			wmLbl.Size = UDim2.new(1, -(wmPadLeft + wmPadRight), 1, 0)
-			wmLbl.Position = UDim2.new(0, wmPadLeft, 0, 0)
+			wmLbl.Size = UDim2.new(1, -24, 1, 0)
+			wmLbl.Position = UDim2.new(0, 16, 0, 0)
 		end
 	end
 
@@ -1162,15 +1109,7 @@ function Library:new(options)
 		if not wmFrame or not wmLbl then return end
 		local base = tostring(wmBaseText or options.watermark or options.name or "VenturaUI")
 		local text = base
-		if type(wmFormatter) == "function" then
-			local ok, custom = pcall(wmFormatter, {
-				base = base,
-				fps = tonumber(miniStats.fps) or 0,
-				ping = tonumber(miniStats.ping) or 0,
-				statsVisible = wmStatsVisible == true,
-			})
-			if ok and custom ~= nil then text = tostring(custom) end
-		elseif wmStatsVisible then
+		if wmStatsVisible then
 			text = string.format("%s  •  FPS %d  •  PING %dms", base, tonumber(miniStats.fps) or 0, tonumber(miniStats.ping) or 0)
 		end
 		wmLbl.Text = text
@@ -1341,29 +1280,26 @@ function Library:new(options)
 		wmStatsVisible = options.watermarkStats ~= false
 		wmFrame = Instance.new("Frame", SG)
 		wmFrame.Name = "Watermark"
-		wmFrame.BackgroundColor3 = wmBackgroundColor
+		wmFrame.BackgroundColor3 = Color3.fromRGB(9,9,12)
 		wmFrame.BorderSizePixel = 0
-		wmFrame.Visible = wmVisible
-		wmFrame.BackgroundTransparency = wmTransparency
 		wmFrame.Active = true
 		wmFrame.Size = UDim2.new(0, wmWidthOverride or _watermarkAutoWidth(wmBaseText), 0, wmHeight)
 		wmFrame.AnchorPoint = Vector2.new(1, 0)
 		wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y)
 		wmFrame.ZIndex = 50
-		corner(wmFrame, 6); wmStroke = stroke(wmFrame, wmStrokeColor, 1)
-		wmAccent = Instance.new("Frame", wmFrame)
+		corner(wmFrame, 6); stroke(wmFrame, Library.Theme.BorderHover or Library.Theme.Border, 1)
+		local wmAccent = Instance.new("Frame", wmFrame)
 		wmAccent.BackgroundColor3 = Library.Theme.Accent; regAccent(wmAccent)
 		wmAccent.BorderSizePixel = 0
-		wmAccent.Visible = wmAccentVisible == true and wmAccentWidth > 0
-		wmAccent.Size = UDim2.new(0, wmAccentWidth, 1, -8)
+		wmAccent.Size = UDim2.new(0, 3, 1, -8)
 		wmAccent.Position = UDim2.new(0, 6, 0, 4)
 		wmAccent.ZIndex = 51; corner(wmAccent, 3)
 		wmLbl = Instance.new("TextLabel", wmFrame)
 		wmLbl.BackgroundTransparency = 1
-		wmLbl.Size = UDim2.new(1,-(wmPadLeft + wmPadRight),1,0); wmLbl.Position = UDim2.new(0,wmPadLeft,0,0)
-		wmLbl.TextSize = wmTextSize; wmLbl.ZIndex = 51
+		wmLbl.Size = UDim2.new(1,-24,1,0); wmLbl.Position = UDim2.new(0,16,0,0)
+		wmLbl.TextSize = 13; wmLbl.ZIndex = 51
 		wmLbl.FontFace = Font.new("rbxasset://fonts/families/RobotoMono.json", Enum.FontWeight.SemiBold)
-		wmLbl.TextColor3 = wmTextColor
+		wmLbl.TextColor3 = Library.Theme.TextPrimary
 		wmLbl.Text = wmBaseText
 		wmLbl.TextXAlignment = Enum.TextXAlignment.Left
 		_syncWatermarkStats()
@@ -2946,136 +2882,6 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	end
 	function GUI:GetWatermarkText() return tostring(wmBaseText or options.watermark or options.name or "VenturaUI") end
 
-	function GUI:GetWatermarkFrame() return wmFrame end
-	function GUI:GetWatermarkLabel() return wmLbl end
-	function GUI:GetWatermarkAccent() return wmAccent end
-
-	function GUI:SetWatermarkVisible(state, silent)
-		wmVisible = state ~= false
-		if wmFrame then wmFrame.Visible = wmVisible end
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkVisible then pcall(GUI._cfgSyncCallbacks.watermarkVisible, wmVisible) end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmVisible
-	end
-	function GUI:IsWatermarkVisible() return wmVisible == true end
-	function GUI:ToggleWatermark(silent) return GUI:SetWatermarkVisible(not wmVisible, silent) end
-
-	function GUI:SetWatermarkAutoWidth(state, silent)
-		if state == false then
-			wmWidthOverride = _cleanWatermarkWidth(wmFrame and wmFrame.AbsoluteSize.X or _watermarkAutoWidth(wmLbl and wmLbl.Text or wmBaseText or options.name or "VenturaUI"))
-		else
-			wmWidthOverride = nil
-		end
-		_syncWatermarkStats()
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkAutoWidth then pcall(GUI._cfgSyncCallbacks.watermarkAutoWidth, wmWidthOverride == nil) end
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkWidth then pcall(GUI._cfgSyncCallbacks.watermarkWidth, wmWidthOverride or _watermarkAutoWidth(wmLbl and wmLbl.Text or wmBaseText or options.name or "VenturaUI")) end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmWidthOverride == nil
-	end
-	function GUI:GetWatermarkAutoWidth() return wmWidthOverride == nil end
-
-	function GUI:SetWatermarkTextSize(size, silent)
-		wmTextSize = _cleanWatermarkTextSize(size)
-		_syncWatermarkStats()
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkTextSize then pcall(GUI._cfgSyncCallbacks.watermarkTextSize, wmTextSize) end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmTextSize
-	end
-	function GUI:GetWatermarkTextSize() return wmTextSize end
-
-	function GUI:SetWatermarkTransparency(alpha, silent)
-		wmTransparency = _cleanWatermarkTransparency(alpha)
-		_applyWatermarkLayout(wmLbl and wmLbl.Text or wmBaseText)
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkTransparency then pcall(GUI._cfgSyncCallbacks.watermarkTransparency, wmTransparency) end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmTransparency
-	end
-	function GUI:GetWatermarkTransparency() return wmTransparency end
-
-	function GUI:SetWatermarkBackgroundColor(color, silent)
-		if typeof(color) ~= "Color3" then return wmBackgroundColor end
-		wmBackgroundColor = color
-		_applyWatermarkLayout(wmLbl and wmLbl.Text or wmBaseText)
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmBackgroundColor
-	end
-	function GUI:GetWatermarkBackgroundColor() return wmBackgroundColor end
-
-	function GUI:SetWatermarkTextColor(color, silent)
-		if typeof(color) ~= "Color3" then return wmTextColor end
-		wmTextColor = color
-		if wmLbl then wmLbl.TextColor3 = wmTextColor end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmTextColor
-	end
-	function GUI:GetWatermarkTextColor() return wmTextColor end
-
-	function GUI:SetWatermarkStrokeColor(color, silent)
-		if typeof(color) ~= "Color3" then return wmStrokeColor end
-		wmStrokeColor = color
-		if wmStroke then wmStroke.Color = wmStrokeColor end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmStrokeColor
-	end
-	function GUI:GetWatermarkStrokeColor() return wmStrokeColor end
-
-	function GUI:SetWatermarkAccentVisible(state, silent)
-		wmAccentVisible = state ~= false
-		_applyWatermarkLayout(wmLbl and wmLbl.Text or wmBaseText)
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkAccentVisible then pcall(GUI._cfgSyncCallbacks.watermarkAccentVisible, wmAccentVisible) end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmAccentVisible
-	end
-	function GUI:GetWatermarkAccentVisible() return wmAccentVisible == true end
-
-	function GUI:SetWatermarkAccentWidth(width, silent)
-		wmAccentWidth = _cleanWatermarkAccentWidth(width)
-		_applyWatermarkLayout(wmLbl and wmLbl.Text or wmBaseText)
-		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkAccentWidth then pcall(GUI._cfgSyncCallbacks.watermarkAccentWidth, wmAccentWidth) end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmAccentWidth
-	end
-	function GUI:GetWatermarkAccentWidth() return wmAccentWidth end
-
-	function GUI:SetWatermarkAccentColor(color, silent)
-		if typeof(color) ~= "Color3" then return Library.Theme.Accent end
-		if wmAccent then wmAccent.BackgroundColor3 = color end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return color
-	end
-
-	function GUI:SetWatermarkPadding(left, right, silent)
-		wmPadLeft = _cleanWatermarkPadding(left, wmPadLeft)
-		wmPadRight = _cleanWatermarkPadding(right, wmPadRight)
-		_syncWatermarkStats()
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return GUI:GetWatermarkPadding()
-	end
-	function GUI:GetWatermarkPadding() return {Left = wmPadLeft, Right = wmPadRight} end
-
-	function GUI:SetWatermarkFormatter(callback)
-		wmFormatter = type(callback) == "function" and callback or nil
-		_syncWatermarkStats()
-		pcall(function() GUI:MarkConfigDirty() end)
-		return wmFormatter
-	end
-	function GUI:GetWatermarkFormatter() return wmFormatter end
-
-	function GUI:FlashWatermark(text, duration)
-		if not wmLbl then return false end
-		local oldFormatter = wmFormatter
-		local token = HttpService:GenerateGUID(false)
-		GUI._watermarkFlashToken = token
-		wmFormatter = function() return tostring(text or "") end
-		_syncWatermarkStats()
-		task.delay(tonumber(duration) or 1.5, function()
-			if _destroyed or GUI._watermarkFlashToken ~= token then return end
-			wmFormatter = oldFormatter
-			_syncWatermarkStats()
-		end)
-		return true
-	end
-
 	function GUI:SetWatermarkSize(width, height, silent)
 		wmWidthOverride = _cleanWatermarkWidth(width)
 		if height ~= nil then wmHeight = _cleanWatermarkHeight(height) end
@@ -3133,96 +2939,10 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 	GUI.GetTopRightBarSize = GUI.GetWatermarkSize
 	GUI.ResetTopRightBarSize = GUI.ResetWatermarkSize
 
-	function GUI:SetWatermarkPosition(positionOrX, y, silent)
-		if not wmFrame then return nil end
-		if typeof(positionOrX) == "UDim2" then
-			wmFrame.Position = positionOrX
-		elseif typeof(positionOrX) == "Vector2" then
-			wmFrame.AnchorPoint = Vector2.new(0, 0)
-			wmFrame.Position = UDim2.new(0, positionOrX.X, 0, positionOrX.Y)
-		else
-			wmFrame.AnchorPoint = Vector2.new(0, 0)
-			wmFrame.Position = UDim2.new(0, tonumber(positionOrX) or wmFrame.Position.X.Offset, 0, tonumber(y) or wmFrame.Position.Y.Offset)
-		end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmFrame.Position
-	end
-	function GUI:GetWatermarkPosition() return wmFrame and wmFrame.Position or nil end
-	function GUI:SetWatermarkOffset(xOffset, yOffset, silent)
-		if not wmFrame then return nil end
-		wmFrame.AnchorPoint = Vector2.new(1, 0)
-		wmFrame.Position = UDim2.new(1, tonumber(xOffset) or WM_DEFAULT_X, 0, tonumber(yOffset) or WM_DEFAULT_Y)
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
-		return wmFrame.Position
-	end
-	function GUI:ResetWatermarkPosition(silent)
+	function GUI:ResetWatermarkPosition()
 		if wmFrame then wmFrame.AnchorPoint = Vector2.new(1, 0); wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y) end
-		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
+		pcall(function() GUI:MarkConfigDirty() end)
 	end
-
-	-- Extra user-friendly aliases for scripts that call it a status bar/top-right bar.
-	GUI.SetStatusBarVisible = GUI.SetWatermarkVisible
-	GUI.IsStatusBarVisible = GUI.IsWatermarkVisible
-	GUI.ToggleStatusBar = GUI.ToggleWatermark
-	GUI.GetStatusBarFrame = GUI.GetWatermarkFrame
-	GUI.GetStatusBarLabel = GUI.GetWatermarkLabel
-	GUI.GetStatusBarAccent = GUI.GetWatermarkAccent
-	GUI.SetStatusBarText = GUI.SetWatermarkText
-	GUI.GetStatusBarText = GUI.GetWatermarkText
-	GUI.SetStatusBarStatsVisible = GUI.SetWatermarkStatsVisible
-	GUI.GetStatusBarStatsVisible = GUI.GetWatermarkStatsVisible
-	GUI.SetStatusBarAutoWidth = GUI.SetWatermarkAutoWidth
-	GUI.GetStatusBarAutoWidth = GUI.GetWatermarkAutoWidth
-	GUI.SetStatusBarTextSize = GUI.SetWatermarkTextSize
-	GUI.GetStatusBarTextSize = GUI.GetWatermarkTextSize
-	GUI.SetStatusBarTransparency = GUI.SetWatermarkTransparency
-	GUI.GetStatusBarTransparency = GUI.GetWatermarkTransparency
-	GUI.SetStatusBarBackgroundColor = GUI.SetWatermarkBackgroundColor
-	GUI.GetStatusBarBackgroundColor = GUI.GetWatermarkBackgroundColor
-	GUI.SetStatusBarTextColor = GUI.SetWatermarkTextColor
-	GUI.GetStatusBarTextColor = GUI.GetWatermarkTextColor
-	GUI.SetStatusBarStrokeColor = GUI.SetWatermarkStrokeColor
-	GUI.GetStatusBarStrokeColor = GUI.GetWatermarkStrokeColor
-	GUI.SetStatusBarAccentVisible = GUI.SetWatermarkAccentVisible
-	GUI.GetStatusBarAccentVisible = GUI.GetWatermarkAccentVisible
-	GUI.SetStatusBarAccentWidth = GUI.SetWatermarkAccentWidth
-	GUI.GetStatusBarAccentWidth = GUI.GetWatermarkAccentWidth
-	GUI.SetStatusBarAccentColor = GUI.SetWatermarkAccentColor
-	GUI.SetStatusBarPadding = GUI.SetWatermarkPadding
-	GUI.GetStatusBarPadding = GUI.GetWatermarkPadding
-	GUI.SetStatusBarFormatter = GUI.SetWatermarkFormatter
-	GUI.GetStatusBarFormatter = GUI.GetWatermarkFormatter
-	GUI.FlashStatusBar = GUI.FlashWatermark
-	GUI.SetStatusBarPosition = GUI.SetWatermarkPosition
-	GUI.GetStatusBarPosition = GUI.GetWatermarkPosition
-	GUI.SetStatusBarOffset = GUI.SetWatermarkOffset
-	GUI.ResetStatusBarPosition = GUI.ResetWatermarkPosition
-
-	GUI.SetTopRightBarVisible = GUI.SetWatermarkVisible
-	GUI.IsTopRightBarVisible = GUI.IsWatermarkVisible
-	GUI.ToggleTopRightBar = GUI.ToggleWatermark
-	GUI.GetTopRightBarFrame = GUI.GetWatermarkFrame
-	GUI.SetTopRightBarText = GUI.SetWatermarkText
-	GUI.GetTopRightBarText = GUI.GetWatermarkText
-	GUI.SetTopRightBarStatsVisible = GUI.SetWatermarkStatsVisible
-	GUI.GetTopRightBarStatsVisible = GUI.GetWatermarkStatsVisible
-	GUI.SetTopRightBarAutoWidth = GUI.SetWatermarkAutoWidth
-	GUI.GetTopRightBarAutoWidth = GUI.GetWatermarkAutoWidth
-	GUI.SetTopRightBarTextSize = GUI.SetWatermarkTextSize
-	GUI.GetTopRightBarTextSize = GUI.GetWatermarkTextSize
-	GUI.SetTopRightBarTransparency = GUI.SetWatermarkTransparency
-	GUI.GetTopRightBarTransparency = GUI.GetWatermarkTransparency
-	GUI.SetTopRightBarBackgroundColor = GUI.SetWatermarkBackgroundColor
-	GUI.SetTopRightBarTextColor = GUI.SetWatermarkTextColor
-	GUI.SetTopRightBarAccentVisible = GUI.SetWatermarkAccentVisible
-	GUI.SetTopRightBarAccentWidth = GUI.SetWatermarkAccentWidth
-	GUI.SetTopRightBarPadding = GUI.SetWatermarkPadding
-	GUI.SetTopRightBarFormatter = GUI.SetWatermarkFormatter
-	GUI.FlashTopRightBar = GUI.FlashWatermark
-	GUI.SetTopRightBarPosition = GUI.SetWatermarkPosition
-	GUI.GetTopRightBarPosition = GUI.GetWatermarkPosition
-	GUI.SetTopRightBarOffset = GUI.SetWatermarkOffset
-	GUI.ResetTopRightBarPosition = GUI.ResetWatermarkPosition
 	function GUI:OnDestroy(callback)
 		if type(callback) ~= "function" then return nil end
 		table.insert(GUI._destroyCallbacks, callback)
@@ -6145,13 +5865,6 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			watermarkWidth = wmWidthOverride or 0,
 			watermarkHeight = wmHeight,
 			watermarkAutoWidth = wmWidthOverride == nil,
-			watermarkVisible = wmVisible == true,
-			watermarkTextSize = wmTextSize,
-			watermarkTransparency = wmTransparency,
-			watermarkAccentVisible = wmAccentVisible == true,
-			watermarkAccentWidth = wmAccentWidth,
-			watermarkPaddingLeft = wmPadLeft,
-			watermarkPaddingRight = wmPadRight,
 			responsiveScale = _responsiveScaleEnabled == true,
 			resizeSnap = _resizeSnapEnabled == true,
 			resizeSnapMode = _resizeSnapMode,
@@ -6199,13 +5912,6 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			watermarkWidth = 0,
 			watermarkHeight = 30,
 			watermarkAutoWidth = true,
-			watermarkVisible = true,
-			watermarkTextSize = 13,
-			watermarkTransparency = 0,
-			watermarkAccentVisible = true,
-			watermarkAccentWidth = 3,
-			watermarkPaddingLeft = 16,
-			watermarkPaddingRight = 8,
 			responsiveScale = true,
 			resizeSnap = true,
 			resizeSnapMode = "center",
@@ -6377,24 +6083,11 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		if data.watermarkHeight ~= nil then
 			wmHeight = _cleanWatermarkHeight(data.watermarkHeight)
 		end
-		if data.watermarkVisible ~= nil then wmVisible = data.watermarkVisible == true end
-		if data.watermarkTextSize ~= nil then wmTextSize = _cleanWatermarkTextSize(data.watermarkTextSize) end
-		if data.watermarkTransparency ~= nil then wmTransparency = _cleanWatermarkTransparency(data.watermarkTransparency) end
-		if data.watermarkAccentVisible ~= nil then wmAccentVisible = data.watermarkAccentVisible == true end
-		if data.watermarkAccentWidth ~= nil then wmAccentWidth = _cleanWatermarkAccentWidth(data.watermarkAccentWidth) end
-		if data.watermarkPaddingLeft ~= nil then wmPadLeft = _cleanWatermarkPadding(data.watermarkPaddingLeft, 16) end
-		if data.watermarkPaddingRight ~= nil then wmPadRight = _cleanWatermarkPadding(data.watermarkPaddingRight, 8) end
 		wmStatsVisible = data.watermarkStatsVisible ~= false
 		_syncWatermarkStats()
 		if GUI._cfgSyncCallbacks.watermarkStats then pcall(GUI._cfgSyncCallbacks.watermarkStats, wmStatsVisible) end
-		if GUI._cfgSyncCallbacks.watermarkAutoWidth then pcall(GUI._cfgSyncCallbacks.watermarkAutoWidth, wmWidthOverride == nil) end
 		if GUI._cfgSyncCallbacks.watermarkWidth then pcall(GUI._cfgSyncCallbacks.watermarkWidth, wmWidthOverride or _watermarkAutoWidth(wmLbl and wmLbl.Text or wmBaseText or options.name or "VenturaUI")) end
 		if GUI._cfgSyncCallbacks.watermarkHeight then pcall(GUI._cfgSyncCallbacks.watermarkHeight, wmHeight) end
-		if GUI._cfgSyncCallbacks.watermarkVisible then pcall(GUI._cfgSyncCallbacks.watermarkVisible, wmVisible) end
-		if GUI._cfgSyncCallbacks.watermarkTextSize then pcall(GUI._cfgSyncCallbacks.watermarkTextSize, wmTextSize) end
-		if GUI._cfgSyncCallbacks.watermarkTransparency then pcall(GUI._cfgSyncCallbacks.watermarkTransparency, wmTransparency) end
-		if GUI._cfgSyncCallbacks.watermarkAccentVisible then pcall(GUI._cfgSyncCallbacks.watermarkAccentVisible, wmAccentVisible) end
-		if GUI._cfgSyncCallbacks.watermarkAccentWidth then pcall(GUI._cfgSyncCallbacks.watermarkAccentWidth, wmAccentWidth) end
 		if wmFrame then
 			local savedX = tonumber(data.watermarkX) or WM_DEFAULT_X
 			local savedY = tonumber(data.watermarkY) or WM_DEFAULT_Y
@@ -6937,32 +6630,6 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			pcall(function() watermarkStatsToggle:Set(v, true) end)
 		end
 
-		local watermarkVisibleToggle = S:Toggle({
-			name        = "Show Top Right Bar",
-			description = "Show or hide the whole top-right status bar",
-			default     = GUI:IsWatermarkVisible(),
-			flag        = "watermarkVisible",
-			callback    = function(state)
-				GUI:SetWatermarkVisible(state)
-			end,
-		})
-		GUI._cfgSyncCallbacks.watermarkVisible = function(v)
-			pcall(function() watermarkVisibleToggle:Set(v ~= false, true) end)
-		end
-
-		local watermarkAutoWidthToggle = S:Toggle({
-			name        = "Auto Width",
-			description = "Let the bar resize itself based on text",
-			default     = GUI:GetWatermarkAutoWidth(),
-			flag        = "watermarkAutoWidth",
-			callback    = function(state)
-				GUI:SetWatermarkAutoWidth(state)
-			end,
-		})
-		GUI._cfgSyncCallbacks.watermarkAutoWidth = function(v)
-			pcall(function() watermarkAutoWidthToggle:Set(v ~= false, true) end)
-		end
-
 		local watermarkSize = GUI:GetWatermarkSize()
 		local watermarkWidthSlider = S:Slider({
 			name        = "Top Right Width",
@@ -6997,70 +6664,6 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		})
 		GUI._cfgSyncCallbacks.watermarkHeight = function(v)
 			pcall(function() watermarkHeightSlider:Set(v, true) end)
-		end
-
-		local watermarkTextSizeSlider = S:Slider({
-			name        = "Top Right Text Size",
-			description = "Changes status bar text size",
-			min         = 8,
-			max         = 28,
-			default     = GUI:GetWatermarkTextSize(),
-			round       = 1,
-			suffix      = "px",
-			showRange   = false,
-			callback    = function(value)
-				GUI:SetWatermarkTextSize(value)
-			end,
-		})
-		GUI._cfgSyncCallbacks.watermarkTextSize = function(v)
-			pcall(function() watermarkTextSizeSlider:Set(v, true) end)
-		end
-
-		local watermarkTransparencySlider = S:Slider({
-			name        = "Top Right Transparency",
-			description = "Changes status bar background transparency",
-			min         = 0,
-			max         = 100,
-			default     = math.floor(GUI:GetWatermarkTransparency() * 100 + 0.5),
-			round       = 1,
-			suffix      = "%",
-			showRange   = false,
-			callback    = function(value)
-				GUI:SetWatermarkTransparency((tonumber(value) or 0) / 100)
-			end,
-		})
-		GUI._cfgSyncCallbacks.watermarkTransparency = function(v)
-			pcall(function() watermarkTransparencySlider:Set(math.floor((tonumber(v) or 0) * 100 + 0.5), true) end)
-		end
-
-		local watermarkAccentVisibleToggle = S:Toggle({
-			name        = "Accent Strip",
-			description = "Show or hide the colored strip inside the status bar",
-			default     = GUI:GetWatermarkAccentVisible(),
-			flag        = "watermarkAccentVisible",
-			callback    = function(state)
-				GUI:SetWatermarkAccentVisible(state)
-			end,
-		})
-		GUI._cfgSyncCallbacks.watermarkAccentVisible = function(v)
-			pcall(function() watermarkAccentVisibleToggle:Set(v ~= false, true) end)
-		end
-
-		local watermarkAccentWidthSlider = S:Slider({
-			name        = "Accent Strip Width",
-			description = "Changes the colored strip width",
-			min         = 0,
-			max         = 18,
-			default     = GUI:GetWatermarkAccentWidth(),
-			round       = 1,
-			suffix      = "px",
-			showRange   = false,
-			callback    = function(value)
-				GUI:SetWatermarkAccentWidth(value)
-			end,
-		})
-		GUI._cfgSyncCallbacks.watermarkAccentWidth = function(v)
-			pcall(function() watermarkAccentWidthSlider:Set(v, true) end)
 		end
 
 		S:Button({
