@@ -1,0 +1,2023 @@
+--// Converted from Mercury UI to CrimsonsMoons NewGUI / VenturaUI
+--// New UI Lib:
+--// https://raw.githubusercontent.com/CrimsonsMoons/Ui-lib/refs/heads/main/NewGUI
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Ui-lib/refs/heads/main/NewGUI"))()
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+--// NewGUI Window
+local Window = Library:new({
+    name = "Island Teleport GUI",
+    subtitle = "Converted from old Mercury UI",
+    theme = "Space",
+    accent = Library.Accents.Purple or Library.Accents.Nova or Library.Accents.Blue,
+    watermark = "CrimmyScriptz",
+    loadingTime = 1.2,
+    toggleKey = Enum.KeyCode.RightControl,
+    configProfile = "IslandTeleportGUI",
+    autoLoad = true,
+    autoLoadConfig = true,
+    destroyOnRespawn = false,
+    reconnectOnRespawn = true,
+})
+
+--// Mercury-style compatibility adapter backed by NewGUI.
+--// This lets all old functions transfer without rewriting every callback.
+local GUI = {}
+local TabAdapter = {}
+TabAdapter.__index = TabAdapter
+
+local function pick(tbl, ...)
+    for _, key in ipairs({...}) do
+        local value = tbl and tbl[key]
+        if value ~= nil then
+            return value
+        end
+    end
+    return nil
+end
+
+local function toNewName(opts)
+    return tostring(pick(opts, "Name", "name", "Title", "title") or "Unnamed")
+end
+
+local function toNewDescription(opts)
+    return tostring(pick(opts, "Description", "description", "Tooltip", "tooltip") or "")
+end
+
+local function toNewIcon(opts)
+    local icon = pick(opts, "Icon", "icon")
+    if icon == nil or icon == "" then
+        return Library.Icons and Library.Icons.dot or ""
+    end
+    return icon
+end
+
+function GUI:Tab(opts)
+    opts = opts or {}
+    local tab = Window:CreateTab({
+        name = toNewName(opts),
+        icon = toNewIcon(opts),
+    })
+
+    return setmetatable({
+        _tab = tab,
+        _name = toNewName(opts),
+    }, TabAdapter)
+end
+
+function TabAdapter:Section(opts)
+    opts = opts or {}
+    self._tab:Section({
+        name = toNewName(opts),
+        subtitle = pick(opts, "Subtitle", "subtitle") or "",
+        icon = toNewIcon(opts),
+    })
+    return self
+end
+
+function TabAdapter:Button(opts)
+    opts = opts or {}
+    return self._tab:Button({
+        name = toNewName(opts),
+        description = toNewDescription(opts),
+        icon = toNewIcon(opts),
+        callback = pick(opts, "Callback", "callback") or function() end,
+    })
+end
+
+function TabAdapter:Toggle(opts)
+    opts = opts or {}
+    return self._tab:Toggle({
+        name = toNewName(opts),
+        description = toNewDescription(opts),
+        icon = toNewIcon(opts),
+        default = pick(opts, "StartingState", "startingState", "Default", "default") == true,
+        flag = pick(opts, "Flag", "flag"),
+        callback = pick(opts, "Callback", "callback") or function() end,
+    })
+end
+
+function TabAdapter:Slider(opts)
+    opts = opts or {}
+    return self._tab:Slider({
+        name = toNewName(opts),
+        description = toNewDescription(opts),
+        icon = toNewIcon(opts),
+        min = pick(opts, "Min", "min") or 0,
+        max = pick(opts, "Max", "max") or 100,
+        default = pick(opts, "Default", "default", "StartingValue", "startingValue") or 0,
+        suffix = pick(opts, "Suffix", "suffix") or "",
+        callback = pick(opts, "Callback", "callback") or function() end,
+    })
+end
+
+function TabAdapter:Dropdown(opts)
+    opts = opts or {}
+    return self._tab:Dropdown({
+        name = toNewName(opts),
+        description = toNewDescription(opts),
+        icon = toNewIcon(opts),
+        items = pick(opts, "Items", "items", "Options", "options") or {},
+        options = pick(opts, "Items", "items", "Options", "options") or {},
+        default = pick(opts, "Default", "default"),
+        multi = pick(opts, "Multi", "multi", "Multiple", "multiple") == true,
+        multiple = pick(opts, "Multi", "multi", "Multiple", "multiple") == true,
+        callback = pick(opts, "Callback", "callback") or function() end,
+    })
+end
+
+function TabAdapter:TextInput(opts)
+    opts = opts or {}
+    return self._tab:TextInput({
+        name = toNewName(opts),
+        description = toNewDescription(opts),
+        icon = toNewIcon(opts),
+        placeholder = pick(opts, "Placeholder", "placeholder") or "",
+        default = pick(opts, "Default", "default") or "",
+        callback = pick(opts, "Callback", "callback") or function() end,
+    })
+end
+
+function TabAdapter:Label(opts)
+    if type(opts) == "string" then
+        return self._tab:Label({ text = opts })
+    end
+    opts = opts or {}
+    return self._tab:Label({
+        text = pick(opts, "Text", "text", "Name", "name") or "",
+    })
+end
+
+function TabAdapter:Paragraph(opts)
+    opts = opts or {}
+
+    local title = pick(opts, "Title", "title", "Name", "name") or ""
+    local text = pick(opts, "Text", "text", "Description", "description") or ""
+
+    if self._tab.Paragraph then
+        return self._tab:Paragraph({
+            title = title,
+            text = text,
+        })
+    elseif self._tab.Info then
+        return self._tab:Info({
+            text = title ~= "" and (title .. " - " .. text) or text,
+        })
+    elseif self._tab.Label then
+        return self._tab:Label({
+            text = title ~= "" and (title .. "\n" .. text) or text,
+        })
+    end
+end
+
+function TabAdapter:Info(opts)
+    local text
+    if type(opts) == "string" then
+        text = opts
+    else
+        opts = opts or {}
+        text = pick(opts, "Text", "text", "Description", "description") or ""
+    end
+
+    if self._tab.Info then
+        return self._tab:Info({ text = text })
+    elseif self._tab.Label then
+        return self._tab:Label({ text = text })
+    end
+end
+
+function TabAdapter:Divider()
+    if self._tab.Divider then
+        return self._tab:Divider()
+    end
+end
+
+-- === Tabs ===
+local MainTab = GUI:Tab{
+    Name = "Main",
+    Icon = "rbxassetid://8569322835"
+}
+
+local TravelTab = GUI:Tab{
+    Name = "Travel",
+    Icon = "rbxassetid://8569322835"
+}
+
+local TrainTab = GUI:Tab{
+    Name = "Train",
+    Icon = "rbxassetid://8569322835"
+}
+
+local SellTab = GUI:Tab{
+    Name = "Sell",
+    Icon = "rbxassetid://8569322835"
+}
+
+local ShopTab = GUI:Tab{
+    Name = "Shop",
+    Icon = "rbxassetid://8569322835"
+}
+
+-- === Universal Exclusions ===
+local exclusions = {
+    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+    ["Horse"] = true,
+    ["Travel Boat"] = true,
+    ["c21e5cba-8957-4d65-9e54-1aaa2411a71c"] = true,
+}
+
+-- === Islands & Positions ===
+local positionsByIsland = {
+    ["Mainland"] = {},
+    ["Forest Island"] = {Vector3.new(-7839,96,4180), Vector3.new(-7945,91,3557), Vector3.new(-7878,135,2901)},
+    ["Mountain Island"] = {Vector3.new(-6715,276,10), Vector3.new(-6102,349,-242), Vector3.new(-6962,304,-778)},
+    ["Lunar Islands"] = {Vector3.new(-3097.42,17.63,-3681.29), Vector3.new(-2759.49,6.74,-2589.20), Vector3.new(-2207.14,139.06,-1223.94), Vector3.new(-3266.90,15.43,-1436.56), Vector3.new(-3357.76,24.34,-2428.62)},
+    ["Royal Island"] = {Vector3.new(253.7,94,-5399), Vector3.new(-372,156,-6136), Vector3.new(617,6.8,-6002)},
+    ["Blizzard Island"] = {Vector3.new(-428,138,-3859), Vector3.new(-937,14,-3897), Vector3.new(244,15,-3563)},
+    ["Jungle Island"] = {Vector3.new(3396,15,1080), Vector3.new(3616,65,2149), Vector3.new(3763,16,3143)},
+    ["Volcano Island"] = {Vector3.new(2964.74,108.94,-7078.36), Vector3.new(4134.52,27.04,-6894.68), Vector3.new(4757.52,26.13,-7939.00), Vector3.new(3487.48,20.99,-8586.85)},
+    ["Desert Island"] = {Vector3.new(1050,15,4095), Vector3.new(156,31,4065), Vector3.new(-517,38,4221)},
+    ["Glacier Island"] = {Vector3.new(2718,115,-74), Vector3.new(2438,196,-763), Vector3.new(3102,147,-911), Vector3.new(3125,82,-74)},
+    ["The Magical Forest"] = {},
+    ["Haunted Island"] = {},
+}
+
+-- === Improved Single-Island Horse Farm ===
+-- One dropdown chooses the island. One toggle farms only that selected island.
+local islandsFolder = workspace:FindFirstChild("Islands")
+local explorerFolder = workspace:FindFirstChild("Explorer")
+
+local islandOrder = {
+    "Mainland",
+    "Forest Island",
+    "Mountain Island",
+    "Lunar Islands",
+    "Royal Island",
+    "Blizzard Island",
+    "Jungle Island",
+    "Volcano Island",
+    "Desert Island",
+    "Glacier Island",
+    "The Magical Forest",
+    "Haunted Island",
+}
+
+local selectedFarmIsland = "Forest Island"
+local farmSelectedIslandEnabled = false
+local currentFarmBody = nil
+local farmLastTravelIsland = nil
+
+local FARM_SCAN_INTERVAL = 0.15
+local FARM_LOCK_INTERVAL = 0.18
+local FARM_HOVER_OFFSET = Vector3.new(0, 5.5, 0)
+local FARM_NEAR_ISLAND_RANGE = 2200
+
+local function refreshIslandFolders()
+    islandsFolder = workspace:FindFirstChild("Islands")
+    explorerFolder = workspace:FindFirstChild("Explorer")
+end
+
+local function isUUIDName(name)
+    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+end
+
+local function getHRP()
+    local character = player.Character or player.CharacterAdded:Wait()
+    return character and character:FindFirstChild("HumanoidRootPart")
+end
+
+local function safeSetCFrame(hrp, cf)
+    if not hrp or not hrp.Parent then return false end
+
+    local character = hrp.Parent
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.Sit = false
+        humanoid.PlatformStand = false
+        humanoid:ChangeState(Enum.HumanoidStateType.Running)
+    end
+
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    hrp.CFrame = cf
+    return true
+end
+
+local function isNearIslandPosition(pos, islandName)
+    local anchors = positionsByIsland[islandName]
+    if not anchors or #anchors == 0 then
+        return true
+    end
+
+    for _, anchor in ipairs(anchors) do
+        if (pos - anchor).Magnitude <= FARM_NEAR_ISLAND_RANGE then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function addBodyIfValid(list, model, islandName, requireIslandRange)
+    if not model or not model:IsA("Model") then return end
+    if exclusions[model.Name] then return end
+
+    -- Most wild horses/items use UUID model names. This skips pets, boats, and player mounts.
+    if not isUUIDName(model.Name) then return end
+
+    local body = model:FindFirstChild("Body")
+    if not (body and body:IsA("BasePart") and body:IsDescendantOf(workspace)) then return end
+    if requireIslandRange and not isNearIslandPosition(body.Position, islandName) then return end
+
+    table.insert(list, body)
+end
+
+local function getAllBodies(islandName)
+    refreshIslandFolders()
+
+    local bodies = {}
+    local scanned = {}
+
+    local function scanContainer(container, requireIslandRange)
+        if not container or scanned[container] then return end
+        scanned[container] = true
+
+        for _, model in ipairs(container:GetChildren()) do
+            addBodyIfValid(bodies, model, islandName, requireIslandRange)
+        end
+    end
+
+    -- Prefer the selected island folders first.
+    if islandsFolder then
+        scanContainer(islandsFolder:FindFirstChild(islandName), false)
+    end
+
+    if explorerFolder then
+        scanContainer(explorerFolder:FindFirstChild(islandName), false)
+    end
+
+    -- Fallback: some horses can sit directly in Workspace. Only accept them if near the island anchors.
+    scanContainer(workspace, true)
+
+    return bodies
+end
+
+local function pickBestBody(islandName, hrp, previousBody)
+    local bodies = getAllBodies(islandName)
+    if #bodies == 0 then return nil end
+
+    if previousBody and previousBody:IsDescendantOf(workspace) then
+        for _, body in ipairs(bodies) do
+            if body == previousBody then
+                return previousBody
+            end
+        end
+    end
+
+    local origin = hrp and hrp.Position
+    local bestBody, bestScore
+
+    for _, body in ipairs(bodies) do
+        if body and body.Parent then
+            local score = origin and (body.Position - origin).Magnitude or 0
+            if not bestScore or score < bestScore then
+                bestScore = score
+                bestBody = body
+            end
+        end
+    end
+
+    return bestBody
+end
+
+local function scanIslandPositionsUntilHorse(islandName)
+    local hrp = getHRP()
+    local positions = positionsByIsland[islandName] or {}
+    if not hrp or #positions == 0 then
+        task.wait(FARM_SCAN_INTERVAL)
+        return nil
+    end
+
+    for _, pos in ipairs(positions) do
+        if not farmSelectedIslandEnabled or selectedFarmIsland ~= islandName then
+            return nil
+        end
+
+        safeSetCFrame(hrp, CFrame.new(pos + FARM_HOVER_OFFSET))
+
+        -- Faster detection than the old 12-second blind wait.
+        for _ = 1, 16 do
+            if not farmSelectedIslandEnabled or selectedFarmIsland ~= islandName then
+                return nil
+            end
+
+            local found = pickBestBody(islandName, hrp, currentFarmBody)
+            if found then
+                return found
+            end
+
+            task.wait(0.075)
+        end
+    end
+
+    return nil
+end
+
+local function farmSelectedIslandLoop()
+    while farmSelectedIslandEnabled do
+        local islandName = selectedFarmIsland
+        local hrp = getHRP()
+
+        if not hrp then
+            task.wait(0.25)
+            continue
+        end
+
+        currentFarmBody = pickBestBody(islandName, hrp, currentFarmBody)
+
+        if currentFarmBody and currentFarmBody:IsDescendantOf(workspace) then
+            local bodyCF = currentFarmBody.CFrame
+            local hoverCF = bodyCF + FARM_HOVER_OFFSET
+            safeSetCFrame(hrp, hoverCF)
+            task.wait(FARM_LOCK_INTERVAL)
+        else
+            currentFarmBody = scanIslandPositionsUntilHorse(islandName)
+            task.wait(FARM_SCAN_INTERVAL)
+        end
+    end
+
+    currentFarmBody = nil
+end
+
+local IslandSection = MainTab:Section{
+    Name = "Horse Farm",
+    Subtitle = "Pick one island and farm only that island",
+}
+
+IslandSection:Dropdown{
+    Name = "Farm Island",
+    Description = "Single picker for the island with horses you want to farm",
+    Items = islandOrder,
+    Default = selectedFarmIsland,
+    Multiple = false,
+    Callback = function(value)
+        -- Supports normal dropdown values and table values from multi-capable libraries.
+        if type(value) == "table" then
+            value = value[1]
+        end
+
+        if value and positionsByIsland[tostring(value)] then
+            selectedFarmIsland = tostring(value)
+            currentFarmBody = nil
+        end
+    end,
+}
+
+IslandSection:Toggle{
+    Name = "Farm Selected Island",
+    Description = "Teleports to horses on the selected island only",
+    StartingState = false,
+    Callback = function(state)
+        farmSelectedIslandEnabled = state == true
+        currentFarmBody = nil
+
+        if farmSelectedIslandEnabled then
+            task.spawn(farmSelectedIslandLoop)
+        end
+    end,
+}
+
+IslandSection:Button{
+    Name = "Refresh Horse Target",
+    Description = "Clears the current lock and finds a new nearest horse body",
+    Callback = function()
+        currentFarmBody = nil
+    end,
+}
+
+-- === Travel Buttons ===
+local TravelSection = TravelTab:Section{ Name = "Travel" }
+for islandName in pairs(positionsByIsland) do
+    TravelSection:Button{
+        Name = "Travel to "..islandName,
+        Description = "Use teleport remote",
+        Callback = function()
+            local args = {"\1","Travel",islandName,1}
+            local remoteFolder = game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9):WaitForChild("Functions",9e9)
+            local teleportRemote = remoteFolder:GetChildren()[2]
+            if teleportRemote then
+                teleportRemote:FireServer(unpack(args))
+            end
+        end
+    }
+end
+
+-- === Train Tab ===
+local TrainSection = TrainTab:Section{ Name = "Train" }
+TrainSection:Button{
+    Name = "Train All",
+    Description = "Run Cross v1",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Cross%20v1", true))()
+    end
+}
+
+-- === Sell Tab ===
+local SellSection = SellTab:Section{ Name = "Auto Sell" }
+
+SellSection:Paragraph{
+    Title = "Safe Auto Sell",
+    Text = "Normal selling and special selling are separated. Protected SpecialIndicator colors are guarded so rare/event-style items stay protected."
+}
+
+local SELL_LOOP_INTERVAL = 0.5
+
+local normalSellScripts = {
+    {
+        name = "Normal Sell Pass 1",
+        url = "https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell2",
+        interval = SELL_LOOP_INTERVAL,
+        protectProtectedIndicators = true,
+    },
+    {
+        name = "Normal Sell Pass 2",
+        url = "https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell3",
+        interval = SELL_LOOP_INTERVAL,
+        protectProtectedIndicators = true,
+    },
+    {
+        name = "Normal Sell Pass 3",
+        url = "https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell4",
+        interval = SELL_LOOP_INTERVAL,
+        protectProtectedIndicators = true,
+    },
+}
+
+local specialSellScripts = {
+    {
+        name = "Special Sell Pass 1",
+        url = "https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Sell%20Specials",
+        interval = SELL_LOOP_INTERVAL,
+        protectProtectedIndicators = true,
+    },
+    {
+        name = "Special Sell Pass 2",
+        url = "https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/Auto%20Sell%20Specials%203",
+        interval = SELL_LOOP_INTERVAL,
+        protectProtectedIndicators = true,
+    },
+}
+
+local PROTECTED_SPECIAL_COLORS = {
+    { name = "Pink", color = Color3.fromRGB(255, 65, 122) },
+    { name = "Light Purple", color = Color3.fromRGB(215, 203, 255) },
+    { name = "Green", color = Color3.fromRGB(80, 255, 115) },
+    { name = "Ice Blue", color = Color3.fromRGB(212, 247, 255) },
+    { name = "Purple", color = Color3.fromRGB(163, 133, 255) },
+}
+
+local protectedIndicatorState = {
+    ids = {},
+    items = {},
+    count = 0,
+    updatedAt = 0,
+    hookAttempted = false,
+    hookInstalled = false,
+}
+
+local protectedSellWarnCooldown = 0
+local originalProtectedNamecall
+
+local function isSameColor3(a, b, tolerance)
+    tolerance = tolerance or 2
+    if typeof(a) ~= "Color3" or typeof(b) ~= "Color3" then
+        return false
+    end
+
+    return math.abs((a.R * 255) - (b.R * 255)) <= tolerance
+        and math.abs((a.G * 255) - (b.G * 255)) <= tolerance
+        and math.abs((a.B * 255) - (b.B * 255)) <= tolerance
+end
+
+local function getProtectedColorName(color)
+    for _, data in ipairs(PROTECTED_SPECIAL_COLORS) do
+        if isSameColor3(color, data.color, 2) then
+            return data.name
+        end
+    end
+
+    return nil
+end
+
+local function getBackpackListRoot()
+    local playerGui = player:FindFirstChildOfClass("PlayerGui")
+    if not playerGui then
+        return nil
+    end
+
+    local menus = playerGui:FindFirstChild("Menus")
+    local backpack = menus and menus:FindFirstChild("Backpack")
+    local main = backpack and backpack:FindFirstChild("Main")
+    local inventory = main and main:FindFirstChild("Inventory")
+    local content = inventory and inventory:FindFirstChild("Content")
+    return content and content:FindFirstChild("List")
+end
+
+local function collectProtectedIndicatorItems()
+    local protectedItems = {}
+    local protectedIds = {}
+    local listRoot = getBackpackListRoot()
+
+    if not listRoot then
+        return protectedItems, protectedIds, 0
+    end
+
+    for _, categoryFrame in ipairs(listRoot:GetChildren()) do
+        local itemList = categoryFrame:FindFirstChild("List")
+        if itemList then
+            for _, itemFrame in ipairs(itemList:GetChildren()) do
+                local indicator = itemFrame:FindFirstChild("SpecialIndicator")
+                if indicator and indicator:IsA("GuiObject") then
+                    local colorName = getProtectedColorName(indicator.BackgroundColor3)
+                    if colorName then
+                        local itemId = tostring(itemFrame.Name)
+                        protectedIds[itemId] = true
+                        table.insert(protectedItems, {
+                            id = itemId,
+                            color = colorName,
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    return protectedItems, protectedIds, #protectedItems
+end
+
+local function refreshProtectedIndicatorCache(force)
+    local now = os.clock()
+    if not force and (now - protectedIndicatorState.updatedAt) < 0.25 then
+        return protectedIndicatorState.items, protectedIndicatorState.ids, protectedIndicatorState.count
+    end
+
+    local items, ids, count = collectProtectedIndicatorItems()
+    protectedIndicatorState.items = items
+    protectedIndicatorState.ids = ids
+    protectedIndicatorState.count = count
+    protectedIndicatorState.updatedAt = now
+
+    return items, ids, count
+end
+
+local function getFirstProtectedItemText()
+    local items = protectedIndicatorState.items
+    local first = items and items[1]
+    if not first then
+        return "unknown"
+    end
+
+    return ("%s [%s]"):format(tostring(first.id), tostring(first.color))
+end
+
+local function warnProtectedBlocked(actionName, itemId)
+    local now = os.clock()
+    if now < protectedSellWarnCooldown then
+        return
+    end
+
+    protectedSellWarnCooldown = now + 3
+    warn(("[CrimmyScriptz] Blocked %s to protect item %s. Protected SpecialIndicator colors are enabled."):format(
+        tostring(actionName or "sell action"),
+        tostring(itemId or getFirstProtectedItemText())
+    ))
+end
+
+local function hasProtectedIndicatorItems()
+    local _, _, count = refreshProtectedIndicatorCache(true)
+    return count > 0, protectedIndicatorState.items, count
+end
+
+local function isProtectedItemId(value)
+    if value == nil then
+        return false
+    end
+
+    refreshProtectedIndicatorCache(false)
+    return protectedIndicatorState.ids[tostring(value)] == true
+end
+
+local function scanValueForProtectedId(value, depth, seen)
+    depth = depth or 0
+    if depth > 8 then
+        return false
+    end
+
+    local valueType = typeof(value)
+
+    if valueType == "string" or valueType == "number" then
+        if isProtectedItemId(value) then
+            return true, tostring(value)
+        end
+        return false
+    end
+
+    if valueType == "Instance" then
+        if isProtectedItemId(value.Name) then
+            return true, tostring(value.Name)
+        end
+        return false
+    end
+
+    if type(value) == "table" then
+        seen = seen or {}
+        if seen[value] then
+            return false
+        end
+        seen[value] = true
+
+        local checked = 0
+        for k, v in pairs(value) do
+            checked += 1
+            if checked > 300 then
+                break
+            end
+
+            local keyHit, keyId = scanValueForProtectedId(k, depth + 1, seen)
+            if keyHit then
+                return true, keyId
+            end
+
+            local valueHit, valueId = scanValueForProtectedId(v, depth + 1, seen)
+            if valueHit then
+                return true, valueId
+            end
+        end
+    end
+
+    return false
+end
+
+local function scanArgsForProtectedId(...)
+    for _, arg in ipairs({...}) do
+        local found, itemId = scanValueForProtectedId(arg, 0, {})
+        if found then
+            return true, itemId
+        end
+    end
+
+    return false
+end
+
+local function installProtectedSellRemoteGuard()
+    if protectedIndicatorState.hookInstalled then
+        return true
+    end
+
+    if protectedIndicatorState.hookAttempted then
+        return false
+    end
+
+    protectedIndicatorState.hookAttempted = true
+
+    if type(hookmetamethod) ~= "function" or type(getnamecallmethod) ~= "function" or type(newcclosure) ~= "function" then
+        warn("[CrimmyScriptz] Protected item remote guard is not supported by this executor. Sell actions will hard-block when protected indicators are found.")
+        return false
+    end
+
+    local ok, hookResult = pcall(function()
+        originalProtectedNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+
+            if (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
+                local className = self.ClassName
+                if className == "RemoteEvent" or className == "RemoteFunction" then
+                    local found, itemId = scanArgsForProtectedId(...)
+                    if found then
+                        warnProtectedBlocked(method, itemId)
+                        return nil
+                    end
+                end
+            end
+
+            return originalProtectedNamecall(self, ...)
+        end))
+    end)
+
+    protectedIndicatorState.hookInstalled = ok and originalProtectedNamecall ~= nil
+
+    if not protectedIndicatorState.hookInstalled then
+        warn("[CrimmyScriptz] Failed to install protected item remote guard: " .. tostring(hookResult))
+    end
+
+    return protectedIndicatorState.hookInstalled
+end
+
+local function prepareProtectedSellGuard(taskInfo)
+    if not taskInfo or taskInfo.protectProtectedIndicators ~= true then
+        return true
+    end
+
+    refreshProtectedIndicatorCache(true)
+
+    if installProtectedSellRemoteGuard() then
+        return true
+    end
+
+    local hasProtected, _, count = hasProtectedIndicatorItems()
+    if hasProtected then
+        warnProtectedBlocked(tostring(taskInfo.name) .. " fallback block", getFirstProtectedItemText())
+        return false, ("blocked_%d_protected_indicator_items"):format(count)
+    end
+
+    return true
+end
+
+local function runRemoteLuaScript(taskInfo)
+    local ready, reason = prepareProtectedSellGuard(taskInfo)
+    if not ready then
+        return false, reason
+    end
+
+    local ok, result = pcall(function()
+        local source = game:HttpGet(taskInfo.url, true)
+        local fn, compileErr = loadstring(source)
+        if not fn then
+            error(("Failed to load %s: %s"):format(taskInfo.name, tostring(compileErr)))
+        end
+        return fn()
+    end)
+
+    if not ok then
+        warn(("[CrimmyScriptz] %s failed: %s"):format(taskInfo.name, tostring(result)))
+    end
+
+    return ok, result
+end
+
+local function startSellGroup(controller, taskList)
+    if controller.thread then
+        return
+    end
+
+    controller.thread = task.spawn(function()
+        local lastRun = {}
+
+        for _, taskInfo in ipairs(taskList) do
+            lastRun[taskInfo.name] = 0
+        end
+
+        while controller.enabled do
+            local now = os.clock()
+
+            for _, taskInfo in ipairs(taskList) do
+                if not controller.enabled then
+                    break
+                end
+
+                if now - (lastRun[taskInfo.name] or 0) >= taskInfo.interval then
+                    lastRun[taskInfo.name] = now
+                    runRemoteLuaScript(taskInfo)
+                    task.wait(0.05)
+                end
+            end
+
+            task.wait(0.1)
+        end
+
+        controller.thread = nil
+    end)
+end
+
+local autoSellNormals = {
+    enabled = false,
+    thread = nil,
+}
+
+local autoSellSpecials = {
+    enabled = false,
+    thread = nil,
+}
+
+SellSection:Toggle{
+    Name = "Auto Sell Normals",
+    Description = "Sells normal unlocked items from anywhere every 0.5 seconds while keeping protected indicators safe.",
+    StartingState = false,
+    Callback = function(state)
+        autoSellNormals.enabled = state == true
+
+        if autoSellNormals.enabled then
+            startSellGroup(autoSellNormals, normalSellScripts)
+        end
+    end
+}
+
+SellSection:Toggle{
+    Name = "Auto Sell Specials",
+    Description = "Sells safe special items every 0.5 seconds. Does not sell IUH's, naturally dyed items, or event items protected by the indicator colors.",
+    StartingState = false,
+    Callback = function(state)
+        autoSellSpecials.enabled = state == true
+
+        if autoSellSpecials.enabled then
+            startSellGroup(autoSellSpecials, specialSellScripts)
+        end
+    end
+}
+
+SellSection:Paragraph{
+    Title = "Accessory Sell Warning",
+    Text = "Sell All Accessories is one-time only. Protected SpecialIndicator colors are checked before it runs. Click once to arm, then click again within 6 seconds to confirm."
+}
+
+local sellAccessoriesTask = {
+    name = "Sell All Accessories",
+    url = "https://raw.githubusercontent.com/CrimsonsMoons/Jasmine/refs/heads/main/auto%20sell%20acc",
+    protectProtectedIndicators = true,
+}
+
+local sellAccConfirmUntil = 0
+
+SellSection:Button{
+    Name = "⚠ Sell All Accessories Once",
+    Description = "Warning: one-time accessory sell. Protected indicator colors are checked first.",
+    Callback = function()
+        local now = os.clock()
+
+        if now > sellAccConfirmUntil then
+            sellAccConfirmUntil = now + 6
+            warn("[CrimmyScriptz] WARNING: Click Sell All Accessories Once again within 6 seconds to confirm.")
+            return
+        end
+
+        sellAccConfirmUntil = 0
+        runRemoteLuaScript(sellAccessoriesTask)
+    end
+}
+
+-- === Shop Tab ===
+local ShopSection = ShopTab:Section{ Name = "Shop Actions" }
+
+-- All buttons and toggles for Shop
+ShopSection:Button{
+    Name = "Rope",
+    Description = "Buys Rope from Mainland Shop",
+    Callback = function()
+        local args = {"BuyShopItem","Mainland Shop",1,1000}
+        game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9):WaitForChild("Events",9e9):GetChildren()[18]:FireServer(unpack(args))
+    end
+}
+
+ShopSection:Button{
+    Name = "Tin",
+    Description = "Buys Tin from Mainland Shop",
+    Callback = function()
+        local args = {"BuyShopItem","Mainland Shop",10,1000}
+        game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9):WaitForChild("Events",9e9):GetChildren()[18]:FireServer(unpack(args))
+    end
+}
+
+local autoCraftEnabled = false
+ShopSection:Toggle{
+    Name = "Auto Craft Tin Lassos",
+    Description = "Continuously crafts Tin Lassos every 0.4s",
+    StartingState = false,
+    Callback = function(state)
+        autoCraftEnabled = state
+        if state then
+            task.spawn(function()
+                while autoCraftEnabled do
+                    local args = {"Craft",{id=18,variants={},amt=1000}}
+                    game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9):WaitForChild("Events",9e9):GetChildren()[9]:FireServer(unpack(args))
+                    task.wait(0.4)
+                end
+            end)
+        end
+    end
+}
+
+-- === Shop Toggles (NewGUI) ===
+local autoBasketEnabled = false
+ShopSection:Toggle{
+    Name = "Auto Basket",
+    Description = "Fires Remote[16] every 0.1s with Trade args",
+    StartingState = false,
+    Callback = function(state)
+        autoBasketEnabled = state
+        if state then
+            task.spawn(function()
+                while autoBasketEnabled do
+                    local args = {"\1","Trade","goldenAppleBasket"}
+                    local func = game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9)
+                        :WaitForChild("Functions",9e9):GetChildren()[16]
+                    func:FireServer(unpack(args))
+                    task.wait(0.06)
+                end
+            end)
+        end
+    end
+}
+
+local buyApplesEnabled = false
+ShopSection:Toggle{
+    Name = "Buy Apples",
+    Description = "Buys Apples from Farm Shop every 0.9s",
+    StartingState = false,
+    Callback = function(state)
+        buyApplesEnabled = state
+        if state then
+            task.spawn(function()
+                while buyApplesEnabled do
+                    local args = {"BuyShopItem","Farm Shop",6,1000}
+                    local event = game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9)
+                        :WaitForChild("Events",9e9):GetChildren()[18]
+                    event:FireServer(unpack(args))
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+}
+
+local ticketsEnabled = false
+ShopSection:Toggle{
+    Name = "Tickets",
+    Description = "Buys Summer Carnival tickets every 0.4s",
+    StartingState = false,
+    Callback = function(state)
+        ticketsEnabled = state
+        if state then
+            task.spawn(function()
+                while ticketsEnabled do
+                    local args = {"\1","Trade","summerCarnival"}
+                    local func = game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9)
+                        :WaitForChild("Functions",9e9):GetChildren()[15]
+                    func:FireServer(unpack(args))
+                    task.wait(0.4)
+                end
+            end)
+        end
+    end
+}
+
+local autofeedgEnabled = false
+ShopSection:Toggle{
+    Name = "autofeedg",
+    Description = "Activates feed gadget every 0.4s",
+    StartingState = false,
+    Callback = function(state)
+        autofeedgEnabled = state
+        if state then
+            task.spawn(function()
+                while autofeedgEnabled do
+                    local args = {"{bb9d1f45-bf97-450d-84cb-03745d633e8b}","Activate"}
+                    local event = game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9)
+                        :WaitForChild("Events",9e9):GetChildren()[10]
+                    event:FireServer(unpack(args))
+                    task.wait(0.4)
+                end
+            end)
+        end
+    end
+}
+
+local trainticketsEnabled = false
+ShopSection:Toggle{
+    Name = "Train Tickets",
+    Description = "Buys training receipts every 0.4s",
+    StartingState = false,
+    Callback = function(state)
+        trainticketsEnabled = state
+        if state then
+            task.spawn(function()
+                while trainticketsEnabled do
+                    local args = {"\1","Trade","trainingReceipts"}
+                    local func = game:GetService("ReplicatedStorage"):WaitForChild("Communication",9e9)
+                        :WaitForChild("Functions",9e9):GetChildren()[16]
+                    func:FireServer(unpack(args))
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end
+}
+
+local autocollectEnabled = false
+ShopSection:Toggle{
+    Name = "Auto Collect",
+    Description = "Collects from all islands every 0.1s",
+    StartingState = false,
+    Callback = function(state)
+        autocollectEnabled = state
+        if state then
+            task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Events = ReplicatedStorage:WaitForChild("Communication",9e9)
+                    :WaitForChild("Events",9e9)
+                local CollectEvent = Events:GetChildren()[12]
+                local IslandsFolder = workspace:WaitForChild("Islands",9e9)
+
+                while autocollectEnabled do
+                    for _, island in pairs(IslandsFolder:GetChildren()) do
+                        if island:IsA("Folder") or island:IsA("Model") then
+                            for _, uuidModel in pairs(island:GetChildren()) do
+                                if uuidModel:IsA("Model") and uuidModel.Name:match("^%b{}$") then
+                                    local args = {"Collect", uuidModel}
+                                    CollectEvent:FireServer(unpack(args))
+                                end
+                            end
+                        end
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+}
+
+-- === Auto Souls Toggle ===
+local autosoulsEnabled = false
+
+-- === Auto Souls Toggle ===
+local autoSoulsEnabled = false
+
+ShopSection:Toggle{
+    Name = "Auto Souls",
+    Description = "Automatically collects Souls by teleporting to their InteractionPart",
+    StartingState = false,
+    Callback = function(state)
+        autoSoulsEnabled = state
+        if state then
+            task.spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Players = game:GetService("Players")
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumRoot = Character:WaitForChild("HumanoidRootPart")
+
+                local Events = ReplicatedStorage:WaitForChild("Communication", 9e9):WaitForChild("Events", 9e9)
+                local CollectEvent = Events:GetChildren()[13]  -- Using your RemoteEvent
+
+                while autoSoulsEnabled do
+                    -- Loop through Islands
+                    local IslandsFolder = workspace:FindFirstChild("Islands")
+                    if IslandsFolder then
+                        for _, island in pairs(IslandsFolder:GetChildren()) do
+                            for _, uuidModel in pairs(island:GetChildren()) do
+                                if uuidModel:IsA("Model") and uuidModel:FindFirstChild("InteractionPart") then
+                                    local part = uuidModel.InteractionPart
+                                    if part.BrickColor == BrickColor.new("Mint") then
+                                        HumRoot.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+                                        task.wait(0.05)
+                                        CollectEvent:FireServer("Collect", uuidModel)
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Loop through top-level workspace objects
+                    for _, obj in pairs(workspace:GetChildren()) do
+                        if obj:IsA("Model") and obj:FindFirstChild("InteractionPart") then
+                            local part = obj.InteractionPart
+                            if part.BrickColor == BrickColor.new("Mint") then
+                                HumRoot.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+                                task.wait(0.05)
+                                CollectEvent:FireServer("Collect", obj)
+                            end
+                        end
+                    end
+
+                    task.wait(0.5)  -- adjust speed if needed
+                end
+            end)
+        end
+    end
+}
+
+-- === Auto Catch Tab ===
+local AutoCatchTab = GUI:Tab{
+    Name = "Auto Catch",
+    Icon = "rbxassetid://8569322835"
+}
+
+local AutoSection = AutoCatchTab:Section{
+    Name = "Auto Catch",
+    Side = "Left"
+}
+
+-- === Auto Catch Toggle ===
+local autoCatchEnabled = false
+AutoSection:Toggle{
+    Name = "Islands 1,2,3",
+    Description = "Auto Catch Script",
+    StartingState = false,
+    Callback = function(state)
+        autoCatchEnabled = state
+        if state then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Workspace = game:GetService("Workspace")
+
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+                -- Reconnect on respawn
+                LocalPlayer.CharacterAdded:Connect(function(char)
+                    Character = char
+                    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+                end)
+
+                -- Tool UUIDs
+                local TOOL_UUIDS = {
+                    "{b3766c24-da18-40f0-be56-66dba5e882d8}",
+                    "{efe4b787-0112-42f2-a83c-659149e1de5c}",
+                    "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
+                    "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
+                }
+
+                -- Exclusions
+                local exclusions = {
+                    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+                    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+                    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+                    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+                    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+                    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+                    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+                    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+                    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+                    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+                    ["Horse"] = true,
+                    ["Travel Boat"] = true,
+                }
+
+                local islandFolders = {
+                    "Mainland","Forest Island","Mountain Island","Lunar Islands",
+                    "Royal Island","Blizzard Island","Jungle Island","Volcano Island",
+                    "Desert Island","The Magical Forest"
+                }
+
+                local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
+                local CATCH_RADIUS = 15
+                local CATCH_COOLDOWN = 0.7
+                local lastCaught = {}
+
+                local function isUUID(name)
+                    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+                end
+
+                while autoCatchEnabled do
+                    task.wait(0.7)
+                    if not HumanoidRootPart or not HumanoidRootPart.Parent then continue end
+                    local playerPos = HumanoidRootPart.Position
+                    local now = os.clock()
+
+                    -- Check island folders
+                    for _, islandName in ipairs(islandFolders) do
+                        local islandFolder = Workspace:FindFirstChild("Islands") and Workspace.Islands:FindFirstChild(islandName)
+                        if islandFolder then
+                            for _, child in ipairs(islandFolder:GetChildren()) do
+                                local body = child:FindFirstChild("Body")
+                                if body and isUUID(child.Name) and not exclusions[child.Name] then
+                                    local dist = (body.Position - playerPos).Magnitude
+                                    if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                        for _, tool in ipairs(TOOL_UUIDS) do
+                                            remote:FireServer(tool, "Activate", child)
+                                        end
+                                        lastCaught[child] = now
+                                        print("Caught:", child.Name, "at", islandName, "Distance:", math.floor(dist))
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Top-level Workspace UUIDs
+                    for _, child in ipairs(Workspace:GetChildren()) do
+                        local body = child:FindFirstChild("Body")
+                        if body and isUUID(child.Name) and not exclusions[child.Name] then
+                            local dist = (body.Position - playerPos).Magnitude
+                            if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                for _, tool in ipairs(TOOL_UUIDS) do
+                                    remote:FireServer(tool, "Activate", child)
+                                end
+                                lastCaught[child] = now
+                                print("Caught top-level:", child.Name, "Distance:", math.floor(dist))
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+}
+
+-----============= toggle 2 =======-
+
+local autoCatchEnabled = false
+AutoSection:Toggle{
+    Name = "Islands 1,2,3",
+    Description = "Auto Catch Script",
+    StartingState = false,
+    Callback = function(state)
+        autoCatchEnabled = state
+        if state then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Workspace = game:GetService("Workspace")
+
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+                -- Reconnect on respawn
+                LocalPlayer.CharacterAdded:Connect(function(char)
+                    Character = char
+                    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+                end)
+
+                -- Tool UUIDs
+                local TOOL_UUIDS = {
+                    "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
+                    "{06905d54-7826-417e-bfc7-82d326a30885}",
+                    "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
+                }
+
+                -- Exclusions
+                local exclusions = {
+                    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+                    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+                    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+                    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+                    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+                    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+                    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+                    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+                    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+                    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+                    ["Horse"] = true,
+                    ["Travel Boat"] = true,
+                }
+
+                local islandFolders = {
+                    "Mainland","Forest Island","Mountain Island","Lunar Islands",
+                    "Royal Island","Blizzard Island","Jungle Island","Volcano Island",
+                    "Desert Island","The Magical Forest"
+                }
+
+                local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[13]
+                local CATCH_RADIUS = 15
+                local CATCH_COOLDOWN = 0.7
+                local lastCaught = {}
+
+                local function isUUID(name)
+                    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+                end
+
+                while autoCatchEnabled do
+                    task.wait(0.7)
+                    if not HumanoidRootPart or not HumanoidRootPart.Parent then continue end
+                    local playerPos = HumanoidRootPart.Position
+                    local now = os.clock()
+
+                    -- Check island folders
+                    for _, islandName in ipairs(islandFolders) do
+                        local islandFolder = Workspace:FindFirstChild("Islands") and Workspace.Islands:FindFirstChild(islandName)
+                        if islandFolder then
+                            for _, child in ipairs(islandFolder:GetChildren()) do
+                                local body = child:FindFirstChild("Body")
+                                if body and isUUID(child.Name) and not exclusions[child.Name] then
+                                    local dist = (body.Position - playerPos).Magnitude
+                                    if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                        for _, tool in ipairs(TOOL_UUIDS) do
+                                            remote:FireServer(tool, "Activate", child)
+                                        end
+                                        lastCaught[child] = now
+                                        print("Caught:", child.Name, "at", islandName, "Distance:", math.floor(dist))
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Top-level Workspace UUIDs
+                    for _, child in ipairs(Workspace:GetChildren()) do
+                        local body = child:FindFirstChild("Body")
+                        if body and isUUID(child.Name) and not exclusions[child.Name] then
+                            local dist = (body.Position - playerPos).Magnitude
+                            if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                for _, tool in ipairs(TOOL_UUIDS) do
+                                    remote:FireServer(tool, "Activate", child)
+                                end
+                                lastCaught[child] = now
+                                print("Caught top-level:", child.Name, "Distance:", math.floor(dist))
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+}
+
+----========================== Islands 3,4,5 ============--------
+-- === Auto Catch 2 Toggle ===
+local autoCatch2Enabled = false
+AutoSection:Toggle{
+    Name = "4,5,6",
+    Description = "Auto Catch Script 2",
+    StartingState = false,
+    Callback = function(state)
+        autoCatch2Enabled = state
+        if state then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Workspace = game:GetService("Workspace")
+
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+                -- Reconnect on respawn
+                LocalPlayer.CharacterAdded:Connect(function(char)
+                    Character = char
+                    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+                end)
+
+                -- Tool UUIDs
+                local TOOL_UUIDS = {
+                    "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
+                    "{b3766c24-da18-40f0-be56-66dba5e882d8}",
+                    "{efe4b787-0112-42f2-a83c-659149e1de5c}",
+                    "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
+                }
+
+                -- Exclusions
+                local exclusions = {
+                    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+                    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+                    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+                    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+                    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+                    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+                    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+                    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+                    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+                    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+                    ["{980efa15-9598-4070-b1c2-344bd80cce25}"] = true,
+                    ["Horse"] = true,
+                    ["Travel Boat"] = true,
+                }
+
+                -- Island folders
+                local islandFolders = {
+                    "Mainland","Forest Island","Mountain Island","Lunar Islands",
+                    "Royal Island","Blizzard Island","Jungle Island","Volcano Island",
+                    "Desert Island","The Magical Forest","Glacier Island"
+                }
+
+                local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[10]
+                local CATCH_RADIUS = 15
+                local CATCH_COOLDOWN = 0.8
+                local lastCaught = {}
+
+                local function isUUID(name)
+                    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+                end
+
+                while autoCatch2Enabled do
+                    task.wait(CATCH_COOLDOWN)
+                    if not HumanoidRootPart or not HumanoidRootPart.Parent then continue end
+                    local playerPos = HumanoidRootPart.Position
+                    local now = os.clock()
+
+                    -- Check island folders
+                    for _, islandName in ipairs(islandFolders) do
+                        local islandFolder = Workspace:FindFirstChild("Islands") and Workspace.Islands:FindFirstChild(islandName)
+                        if islandFolder then
+                            for _, child in ipairs(islandFolder:GetChildren()) do
+                                local body = child:FindFirstChild("Body")
+                                if body and isUUID(child.Name) and not exclusions[child.Name] then
+                                    local dist = (body.Position - playerPos).Magnitude
+                                    if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                        for _, tool in ipairs(TOOL_UUIDS) do
+                                            remote:FireServer(tool, "Activate", child)
+                                        end
+                                        lastCaught[child] = now
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Top-level UUIDs
+                    for _, child in ipairs(Workspace:GetChildren()) do
+                        local body = child:FindFirstChild("Body")
+                        if body and isUUID(child.Name) and not exclusions[child.Name] then
+                            local dist = (body.Position - playerPos).Magnitude
+                            if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                for _, tool in ipairs(TOOL_UUIDS) do
+                                    remote:FireServer(tool, "Activate", child)
+                                end
+                                lastCaught[child] = now
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+}
+
+
+-- === Auto Catch 2 Toggle ===
+local autoCatch2Enabled = false
+AutoSection:Toggle{
+    Name = "4,5,6",
+    Description = "Auto Catch Script 2",
+    StartingState = false,
+    Callback = function(state)
+        autoCatch2Enabled = state
+        if state then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Workspace = game:GetService("Workspace")
+
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+                -- Reconnect on respawn
+                LocalPlayer.CharacterAdded:Connect(function(char)
+                    Character = char
+                    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+                end)
+
+                -- Tool UUIDs
+                local TOOL_UUIDS = {
+                    "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
+                    "{06905d54-7826-417e-bfc7-82d326a30885}",
+                    "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
+                }
+
+                -- Exclusions
+                local exclusions = {
+                    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+                    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+                    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+                    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+                    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+                    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+                    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+                    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+                    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+                    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+                    ["{980efa15-9598-4070-b1c2-344bd80cce25}"] = true,
+                    ["Horse"] = true,
+                    ["Travel Boat"] = true,
+                }
+
+                -- Island folders
+                local islandFolders = {
+                    "Mainland","Forest Island","Mountain Island","Lunar Islands",
+                    "Royal Island","Blizzard Island","Jungle Island","Volcano Island",
+                    "Desert Island","The Magical Forest","Glacier Island"
+                }
+
+                local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[10]
+                local CATCH_RADIUS = 15
+                local CATCH_COOLDOWN = 0.8
+                local lastCaught = {}
+
+                local function isUUID(name)
+                    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+                end
+
+                while autoCatch2Enabled do
+                    task.wait(CATCH_COOLDOWN)
+                    if not HumanoidRootPart or not HumanoidRootPart.Parent then continue end
+                    local playerPos = HumanoidRootPart.Position
+                    local now = os.clock()
+
+                    -- Check island folders
+                    for _, islandName in ipairs(islandFolders) do
+                        local islandFolder = Workspace:FindFirstChild("Islands") and Workspace.Islands:FindFirstChild(islandName)
+                        if islandFolder then
+                            for _, child in ipairs(islandFolder:GetChildren()) do
+                                local body = child:FindFirstChild("Body")
+                                if body and isUUID(child.Name) and not exclusions[child.Name] then
+                                    local dist = (body.Position - playerPos).Magnitude
+                                    if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                        for _, tool in ipairs(TOOL_UUIDS) do
+                                            remote:FireServer(tool, "Activate", child)
+                                        end
+                                        lastCaught[child] = now
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Top-level UUIDs
+                    for _, child in ipairs(Workspace:GetChildren()) do
+                        local body = child:FindFirstChild("Body")
+                        if body and isUUID(child.Name) and not exclusions[child.Name] then
+                            local dist = (body.Position - playerPos).Magnitude
+                            if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                for _, tool in ipairs(TOOL_UUIDS) do
+                                    remote:FireServer(tool, "Activate", child)
+                                end
+                                lastCaught[child] = now
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+}
+
+------------------------- =================== Islands 6,7,8 ============ -----------
+-- === Auto Catch 3 Toggle ===
+local autoCatch3Enabled = false
+AutoSection:Toggle{
+    Name = "7,8,9",
+    Description = "Auto Catch Script 3",
+    StartingState = false,
+    Callback = function(state)
+        autoCatch3Enabled = state
+        if state then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Workspace = game:GetService("Workspace")
+
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+                -- Reconnect on respawn
+                LocalPlayer.CharacterAdded:Connect(function(char)
+                    Character = char
+                    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+                end)
+
+                -- Tool UUIDs
+                local TOOL_UUIDS = {
+                    "{634dc3c2-1694-4273-92d2-adf8f7ade91f}",
+                    "{06905d54-7826-417e-bfc7-82d326a30885}",
+                    "{5dab28e4-4bfb-430b-86fe-530bafa237b5}",
+                    "{cd4c34c5-99a6-4f28-ac73-bfad7c8e1ca2}",
+                }
+
+                -- Exclusions
+                local exclusions = {
+                    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+                    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+                    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+                    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+                    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+                    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+                    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+                    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+                    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+                    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+                    ["{980efa15-9598-4070-b1c2-344bd80cce25}"] = true,
+                    ["Horse"] = true,
+                    ["Travel Boat"] = true,
+                }
+
+                -- Island folders
+                local islandFolders = {
+                    "Mainland","Forest Island","Mountain Island","Lunar Islands",
+                    "Royal Island","Blizzard Island","Jungle Island","Volcano Island",
+                    "Desert Island","The Magical Forest","Glacier Island"
+                }
+
+                local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[10]
+                local CATCH_RADIUS = 15
+                local CATCH_COOLDOWN = 0.8
+                local lastCaught = {}
+
+                local function isUUID(name)
+                    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+                end
+
+                while autoCatch3Enabled do
+                    task.wait(CATCH_COOLDOWN)
+                    if not HumanoidRootPart or not HumanoidRootPart.Parent then continue end
+                    local playerPos = HumanoidRootPart.Position
+                    local now = os.clock()
+
+                    -- Check island folders
+                    for _, islandName in ipairs(islandFolders) do
+                        local islands = Workspace:FindFirstChild("Islands")
+                        local islandFolder = islands and islands:FindFirstChild(islandName)
+                        if islandFolder then
+                            for _, child in ipairs(islandFolder:GetChildren()) do
+                                local body = child:FindFirstChild("Body")
+                                if body and isUUID(child.Name) and not exclusions[child.Name] then
+                                    local dist = (body.Position - playerPos).Magnitude
+                                    if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                        for _, tool in ipairs(TOOL_UUIDS) do
+                                            remote:FireServer(tool, "Activate", child)
+                                        end
+                                        lastCaught[child] = now
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Top-level UUID models
+                    for _, child in ipairs(Workspace:GetChildren()) do
+                        local body = child:FindFirstChild("Body")
+                        if body and isUUID(child.Name) and not exclusions[child.Name] then
+                            local dist = (body.Position - playerPos).Magnitude
+                            if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                for _, tool in ipairs(TOOL_UUIDS) do
+                                    remote:FireServer(tool, "Activate", child)
+                                end
+                                lastCaught[child] = now
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+}
+
+-- === Auto Catch 3 Toggle ===
+local autoCatch3Enabled = false
+AutoSection:Toggle{
+    Name = "7,8,9",
+    Description = "Auto Catch Script 3",
+    StartingState = false,
+    Callback = function(state)
+        autoCatch3Enabled = state
+        if state then
+            task.spawn(function()
+                local Players = game:GetService("Players")
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local Workspace = game:GetService("Workspace")
+
+                local LocalPlayer = Players.LocalPlayer
+                local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+                -- Reconnect on respawn
+                LocalPlayer.CharacterAdded:Connect(function(char)
+                    Character = char
+                    HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+                end)
+
+                -- Tool UUIDs
+                local TOOL_UUIDS = {
+                    "{b3766c24-da18-40f0-be56-66dba5e882d8}",
+                    "{efe4b787-0112-42f2-a83c-659149e1de5c}",
+                    "{91c7c7cc-0b88-4450-9cd5-18063fa4fea0}",
+                }
+
+                -- Exclusions
+                local exclusions = {
+                    ["{84b93b68-b932-4db8-b765-d1bd9ef8aae9}"] = true,
+                    ["{c5769905-aecf-4d7a-ada9-064802b0cae9}"] = true,
+                    ["{d2227f02-c482-4911-b201-7e842b31c47c}"] = true,
+                    ["{6b019e60-21c6-4536-9a06-4cbfee80d88f}"] = true,
+                    ["{12916ad6-7fd9-46d5-8bc1-e69671249721}"] = true,
+                    ["{c91d0e3a-e8c6-4e70-b274-9b7304ffbb28}"] = true,
+                    ["{2c0549c7-f2d0-4828-bc2a-6d484e792cdd}"] = true,
+                    ["{de31ac95-029b-4c26-b9f8-4b61faed7335}"] = true,
+                    ["{fd489389-537f-40e1-bd1a-c048522d23bc}"] = true,
+                    ["{f1f04024-ba69-4d0f-9fee-4f93758c1bfc}"] = true,
+                    ["{980efa15-9598-4070-b1c2-344bd80cce25}"] = true,
+                    ["Horse"] = true,
+                    ["Travel Boat"] = true,
+                }
+
+                -- Island folders
+                local islandFolders = {
+                    "Mainland","Forest Island","Mountain Island","Lunar Islands",
+                    "Royal Island","Blizzard Island","Jungle Island","Volcano Island",
+                    "Desert Island","The Magical Forest","Glacier Island"
+                }
+
+                local remote = ReplicatedStorage:WaitForChild("Communication"):WaitForChild("Events"):GetChildren()[10]
+                local CATCH_RADIUS = 15
+                local CATCH_COOLDOWN = 0.8
+                local lastCaught = {}
+
+                local function isUUID(name)
+                    return typeof(name) == "string" and name:match("^%b{}$") ~= nil
+                end
+
+                while autoCatch3Enabled do
+                    task.wait(CATCH_COOLDOWN)
+                    if not HumanoidRootPart or not HumanoidRootPart.Parent then continue end
+                    local playerPos = HumanoidRootPart.Position
+                    local now = os.clock()
+
+                    -- Check island folders
+                    for _, islandName in ipairs(islandFolders) do
+                        local islands = Workspace:FindFirstChild("Islands")
+                        local islandFolder = islands and islands:FindFirstChild(islandName)
+                        if islandFolder then
+                            for _, child in ipairs(islandFolder:GetChildren()) do
+                                local body = child:FindFirstChild("Body")
+                                if body and isUUID(child.Name) and not exclusions[child.Name] then
+                                    local dist = (body.Position - playerPos).Magnitude
+                                    if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                        for _, tool in ipairs(TOOL_UUIDS) do
+                                            remote:FireServer(tool, "Activate", child)
+                                        end
+                                        lastCaught[child] = now
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    -- Top-level UUID models
+                    for _, child in ipairs(Workspace:GetChildren()) do
+                        local body = child:FindFirstChild("Body")
+                        if body and isUUID(child.Name) and not exclusions[child.Name] then
+                            local dist = (body.Position - playerPos).Magnitude
+                            if dist <= CATCH_RADIUS and (not lastCaught[child] or now - lastCaught[child] > CATCH_COOLDOWN) then
+                                for _, tool in ipairs(TOOL_UUIDS) do
+                                    remote:FireServer(tool, "Activate", child)
+                                end
+                                lastCaught[child] = now
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+}
+
+-- === Extra Tab ===
+local ExtraTab = GUI:Tab{
+    Name = "Extra",
+    Icon = "rbxassetid://8569322835"
+}
+
+-- === Travel Remote ===
+local travelRemote = game:GetService("ReplicatedStorage")
+    :WaitForChild("Communication", 9e9)
+    :WaitForChild("Functions", 9e9)
+    :GetChildren()[2]
+
+local function travelToIsland(islandName)
+    local args = {"\1", "Travel", islandName, 1}
+    travelRemote:FireServer(unpack(args))
+    task.wait(5) -- give time to load the island
+end
+
+-- === Cycle Toggle 1: Glacier → Desert → Royal ===
+local cycleIslandsEnabled1 = false
+
+ExtraTab:Toggle{
+    Name = "Cycle Glacier → Desert → Royal > Mountain",
+    StartingState = false,
+    Callback = function(state)
+        cycleIslandsEnabled1 = state
+        if state then
+            task.spawn(function()
+                local islandSequence = {"Glacier Island", "Desert Island", "Royal Island", "Mountain Island"}
+                local islandIndex = 1
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                while cycleIslandsEnabled1 do
+                    local currentIsland = islandSequence[islandIndex]
+
+                    -- Travel using the remote
+                    travelToIsland(currentIsland)
+
+                    local startTime = os.clock()
+                    while os.clock() - startTime < 205 and cycleIslandsEnabled1 do
+                        hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then break end
+
+                        local bodies = getAllBodies(currentIsland)
+                        local posList = positionsByIsland[currentIsland]
+
+                        if #bodies > 0 then
+                            local body = bodies[1]
+                            if body and body.Parent then
+                                hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            end
+                        elseif #posList > 0 then
+                            for _, pos in ipairs(posList) do
+                                if not cycleIslandsEnabled1 then break end
+                                hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                                for _ = 1, 120 do
+                                    if not cycleIslandsEnabled1 then break end
+                                    task.wait(0.1)
+                                end
+                            end
+                        end
+
+                        task.wait(0.3)
+                    end
+
+                    -- Next island
+                    islandIndex = islandIndex + 1
+                    if islandIndex > #islandSequence then
+                        islandIndex = 1
+                    end
+                end
+            end)
+        end
+    end
+}
+
+-- === Cycle Toggle 2: Lunar → Volcano → Jungle ===
+local cycleIslandsEnabled2 = false
+
+ExtraTab:Toggle{
+    Name = "Cycle Lunar → Volcano → Jungle",
+    StartingState = false,
+    Callback = function(state)
+        cycleIslandsEnabled2 = state
+        if state then
+            task.spawn(function()
+                local islandSequence = {"Lunar Islands", "Volcano Island", "Jungle Island"}
+                local islandIndex = 1
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                while cycleIslandsEnabled2 do
+                    local currentIsland = islandSequence[islandIndex]
+
+                    -- Travel using the remote
+                    travelToIsland(currentIsland)
+
+                    local startTime = os.clock()
+                    while os.clock() - startTime < 205 and cycleIslandsEnabled2 do
+                        hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if not hrp then break end
+
+                        local bodies = getAllBodies(currentIsland)
+                        local posList = positionsByIsland[currentIsland]
+
+                        if #bodies > 0 then
+                            local body = bodies[1]
+                            if body and body.Parent then
+                                hrp.CFrame = CFrame.new(body.Position + Vector3.new(0,5,0))
+                            end
+                        elseif #posList > 0 then
+                            for _, pos in ipairs(posList) do
+                                if not cycleIslandsEnabled2 then break end
+                                hrp.CFrame = CFrame.new(pos + Vector3.new(0,5,0))
+                                for _ = 1, 120 do
+                                    if not cycleIslandsEnabled2 then break end
+                                    task.wait(0.1)
+                                end
+                            end
+                        end
+
+                        task.wait(0.3)
+                    end
+
+                    -- Next island
+                    islandIndex = islandIndex + 1
+                    if islandIndex > #islandSequence then
+                        islandIndex = 1
+                    end
+                end
+            end)
+        end
+    end
+}
+
+-- === Remove Lava Button ===
+ExtraTab:Button{
+    Name = "Remove Volcano Lava",
+    Callback = function()
+        local lavaFolder = workspace:FindFirstChild("Islands")
+            and workspace.Islands:FindFirstChild("Volcano Island")
+            and workspace.Islands["Volcano Island"]:FindFirstChild("LavaParts")
+        if lavaFolder then
+            lavaFolder:Destroy()
+        end
+    end
+}
+
+---
