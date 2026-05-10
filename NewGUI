@@ -19,7 +19,7 @@ local TI_SLOW = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.
 local MOBILE  = UIS.TouchEnabled and not UIS.KeyboardEnabled
 
 local Library = {}
-Library.Version = "5.35-register-limit-example-fix"
+Library.Version = "5.36-statusbar-size"
 
 -- ══════════════════════════════════════════════════════════════════════
 -- ICON SYSTEM
@@ -712,6 +712,12 @@ function Library:new(options)
 		onClose         = nil,
 		watermark       = nil,
 		watermarkStats  = true,    -- show FPS + ping in the top-right watermark bar
+		watermarkWidth  = nil,     -- fixed top-right status/watermark width; nil/0 = auto
+		watermarkHeight = 30,      -- fixed top-right status/watermark height
+		statusBarWidth  = nil,     -- alias for watermarkWidth
+		statusBarHeight = nil,     -- alias for watermarkHeight
+		topRightBarWidth  = nil,   -- alias for watermarkWidth
+		topRightBarHeight = nil,   -- alias for watermarkHeight
 		destroyOnRespawn= false,
 		reconnectOnRespawn = true,
 		reconnectDelay   = 0.85,
@@ -781,9 +787,24 @@ function Library:new(options)
 
 	-- Top-right watermark / mini bar stats state
 	local wmFrame, wmLbl, wmBaseText
-	local wmStatsVisible = true
+	local wmStatsVisible = options.watermarkStats ~= false
 	-- 5.18: stats bar defaults to top-right so it stays clear of Roblox top-left UI.
 	local WM_DEFAULT_X, WM_DEFAULT_Y = -14, 14
+	local WM_MIN_W, WM_MAX_W = 110, 1000
+	local WM_MIN_H, WM_MAX_H = 24, 72
+
+	local function _cleanWatermarkWidth(v)
+		v = tonumber(v)
+		if not v or v <= 0 then return nil end
+		return math.clamp(math.floor(v + 0.5), WM_MIN_W, WM_MAX_W)
+	end
+
+	local function _cleanWatermarkHeight(v)
+		return math.clamp(math.floor((tonumber(v) or 30) + 0.5), WM_MIN_H, WM_MAX_H)
+	end
+
+	local wmWidthOverride = _cleanWatermarkWidth(options.watermarkWidth or options.statusBarWidth or options.topRightBarWidth)
+	local wmHeight = _cleanWatermarkHeight(options.watermarkHeight or options.statusBarHeight or options.topRightBarHeight)
 
 	-- Predeclared here so viewport-resize snapping can also recover the minimized restore bubble.
 	local minimizeBubble
@@ -1069,6 +1090,21 @@ function Library:new(options)
 		return Color3.fromRGB(235, 85, 85)
 	end
 
+	local function _watermarkAutoWidth(text)
+		return math.clamp(textWidth(text, 13, Enum.Font.RobotoMono) + 38, 130, 720)
+	end
+
+	local function _applyWatermarkLayout(text)
+		if not wmFrame then return end
+		local w = wmWidthOverride or _watermarkAutoWidth(text or (wmLbl and wmLbl.Text) or wmBaseText or options.name or "VenturaUI")
+		local h = wmHeight
+		wmFrame.Size = UDim2.new(0, w, 0, h)
+		if wmLbl then
+			wmLbl.Size = UDim2.new(1, -24, 1, 0)
+			wmLbl.Position = UDim2.new(0, 16, 0, 0)
+		end
+	end
+
 	local function _syncWatermarkStats()
 		if not wmFrame or not wmLbl then return end
 		local base = tostring(wmBaseText or options.watermark or options.name or "VenturaUI")
@@ -1077,8 +1113,7 @@ function Library:new(options)
 			text = string.format("%s  •  FPS %d  •  PING %dms", base, tonumber(miniStats.fps) or 0, tonumber(miniStats.ping) or 0)
 		end
 		wmLbl.Text = text
-		local w = math.clamp(textWidth(text, 13, Enum.Font.RobotoMono) + 38, 130, 720)
-		wmFrame.Size = UDim2.new(0, w, 0, 30)
+		_applyWatermarkLayout(text)
 	end
 
 	local function _setMiniText()
@@ -1242,13 +1277,13 @@ function Library:new(options)
 
 	if options.watermark then
 		wmBaseText = tostring(options.watermark)
-		wmStatsVisible = true
+		wmStatsVisible = options.watermarkStats ~= false
 		wmFrame = Instance.new("Frame", SG)
 		wmFrame.Name = "Watermark"
 		wmFrame.BackgroundColor3 = Color3.fromRGB(9,9,12)
 		wmFrame.BorderSizePixel = 0
 		wmFrame.Active = true
-		wmFrame.Size = UDim2.new(0, math.clamp(textWidth(wmBaseText, 13, Enum.Font.RobotoMono) + 38, 130, 720), 0, 30)
+		wmFrame.Size = UDim2.new(0, wmWidthOverride or _watermarkAutoWidth(wmBaseText), 0, wmHeight)
 		wmFrame.AnchorPoint = Vector2.new(1, 0)
 		wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y)
 		wmFrame.ZIndex = 50
@@ -2846,6 +2881,64 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		pcall(function() GUI:MarkConfigDirty() end)
 	end
 	function GUI:GetWatermarkText() return tostring(wmBaseText or options.watermark or options.name or "VenturaUI") end
+
+	function GUI:SetWatermarkSize(width, height, silent)
+		wmWidthOverride = _cleanWatermarkWidth(width)
+		if height ~= nil then wmHeight = _cleanWatermarkHeight(height) end
+		_syncWatermarkStats()
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkWidth then pcall(GUI._cfgSyncCallbacks.watermarkWidth, wmWidthOverride or _watermarkAutoWidth(wmLbl and wmLbl.Text or wmBaseText or options.name or "VenturaUI")) end
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkHeight then pcall(GUI._cfgSyncCallbacks.watermarkHeight, wmHeight) end
+		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
+		return GUI:GetWatermarkSize()
+	end
+
+	function GUI:SetWatermarkWidth(width, silent)
+		wmWidthOverride = _cleanWatermarkWidth(width)
+		_syncWatermarkStats()
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkWidth then pcall(GUI._cfgSyncCallbacks.watermarkWidth, wmWidthOverride or _watermarkAutoWidth(wmLbl and wmLbl.Text or wmBaseText or options.name or "VenturaUI")) end
+		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
+		return GUI:GetWatermarkSize()
+	end
+
+	function GUI:SetWatermarkHeight(height, silent)
+		wmHeight = _cleanWatermarkHeight(height)
+		_syncWatermarkStats()
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkHeight then pcall(GUI._cfgSyncCallbacks.watermarkHeight, wmHeight) end
+		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
+		return GUI:GetWatermarkSize()
+	end
+
+	function GUI:GetWatermarkSize()
+		local text = wmLbl and wmLbl.Text or wmBaseText or options.watermark or options.name or "VenturaUI"
+		return {
+			Width = wmWidthOverride or (wmFrame and wmFrame.AbsoluteSize.X > 0 and wmFrame.AbsoluteSize.X or _watermarkAutoWidth(text)),
+			Height = wmHeight,
+			AutoWidth = wmWidthOverride == nil,
+		}
+	end
+
+	function GUI:ResetWatermarkSize(silent)
+		wmWidthOverride = nil
+		wmHeight = 30
+		_syncWatermarkStats()
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkWidth then pcall(GUI._cfgSyncCallbacks.watermarkWidth, _watermarkAutoWidth(wmLbl and wmLbl.Text or wmBaseText or options.name or "VenturaUI")) end
+		if GUI._cfgSyncCallbacks and GUI._cfgSyncCallbacks.watermarkHeight then pcall(GUI._cfgSyncCallbacks.watermarkHeight, wmHeight) end
+		if not silent then pcall(function() GUI:MarkConfigDirty() end) end
+		return GUI:GetWatermarkSize()
+	end
+
+	-- User-friendly aliases for scripts that call it a status bar/top-right bar.
+	GUI.SetStatusBarSize = GUI.SetWatermarkSize
+	GUI.SetStatusBarWidth = GUI.SetWatermarkWidth
+	GUI.SetStatusBarHeight = GUI.SetWatermarkHeight
+	GUI.GetStatusBarSize = GUI.GetWatermarkSize
+	GUI.ResetStatusBarSize = GUI.ResetWatermarkSize
+	GUI.SetTopRightBarSize = GUI.SetWatermarkSize
+	GUI.SetTopRightBarWidth = GUI.SetWatermarkWidth
+	GUI.SetTopRightBarHeight = GUI.SetWatermarkHeight
+	GUI.GetTopRightBarSize = GUI.GetWatermarkSize
+	GUI.ResetTopRightBarSize = GUI.ResetWatermarkSize
+
 	function GUI:ResetWatermarkPosition()
 		if wmFrame then wmFrame.AnchorPoint = Vector2.new(1, 0); wmFrame.Position = UDim2.new(1, WM_DEFAULT_X, 0, WM_DEFAULT_Y) end
 		pcall(function() GUI:MarkConfigDirty() end)
@@ -5769,6 +5862,9 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			watermarkY = wmFrame and wmFrame.Position.Y.Offset or WM_DEFAULT_Y,
 			watermarkScaleX = wmFrame and wmFrame.Position.X.Scale or 1,
 			watermarkScaleY = wmFrame and wmFrame.Position.Y.Scale or 0,
+			watermarkWidth = wmWidthOverride or 0,
+			watermarkHeight = wmHeight,
+			watermarkAutoWidth = wmWidthOverride == nil,
 			responsiveScale = _responsiveScaleEnabled == true,
 			resizeSnap = _resizeSnapEnabled == true,
 			resizeSnapMode = _resizeSnapMode,
@@ -5813,6 +5909,9 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			watermarkY = WM_DEFAULT_Y,
 			watermarkScaleX = 1,
 			watermarkScaleY = 0,
+			watermarkWidth = 0,
+			watermarkHeight = 30,
+			watermarkAutoWidth = true,
 			responsiveScale = true,
 			resizeSnap = true,
 			resizeSnapMode = "center",
@@ -5976,9 +6075,19 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 			miniFrame.Position = UDim2.new(0, tonumber(data.miniX) or 14, 0, tonumber(data.miniY) or 14)
 		end
 		-- 5.19: FPS / ping stats are on by default but can be toggled off in Settings.
+		if data.watermarkAutoWidth == true or tonumber(data.watermarkWidth) == 0 then
+			wmWidthOverride = nil
+		elseif data.watermarkWidth ~= nil then
+			wmWidthOverride = _cleanWatermarkWidth(data.watermarkWidth)
+		end
+		if data.watermarkHeight ~= nil then
+			wmHeight = _cleanWatermarkHeight(data.watermarkHeight)
+		end
 		wmStatsVisible = data.watermarkStatsVisible ~= false
 		_syncWatermarkStats()
 		if GUI._cfgSyncCallbacks.watermarkStats then pcall(GUI._cfgSyncCallbacks.watermarkStats, wmStatsVisible) end
+		if GUI._cfgSyncCallbacks.watermarkWidth then pcall(GUI._cfgSyncCallbacks.watermarkWidth, wmWidthOverride or _watermarkAutoWidth(wmLbl and wmLbl.Text or wmBaseText or options.name or "VenturaUI")) end
+		if GUI._cfgSyncCallbacks.watermarkHeight then pcall(GUI._cfgSyncCallbacks.watermarkHeight, wmHeight) end
 		if wmFrame then
 			local savedX = tonumber(data.watermarkX) or WM_DEFAULT_X
 			local savedY = tonumber(data.watermarkY) or WM_DEFAULT_Y
@@ -6520,6 +6629,52 @@ Content.Size=UDim2.new(1,-(navW+28),1,-64)
 		GUI._cfgSyncCallbacks.watermarkStats = function(v)
 			pcall(function() watermarkStatsToggle:Set(v, true) end)
 		end
+
+		local watermarkSize = GUI:GetWatermarkSize()
+		local watermarkWidthSlider = S:Slider({
+			name        = "Top Right Width",
+			description = "Changes the top-right status bar width",
+			min         = 110,
+			max         = 1000,
+			default     = watermarkSize.Width,
+			round       = 1,
+			suffix      = "px",
+			showRange   = false,
+			tooltip     = "Use this when FPS / ping text does not fit.",
+			callback    = function(value)
+				GUI:SetWatermarkWidth(value)
+			end,
+		})
+		GUI._cfgSyncCallbacks.watermarkWidth = function(v)
+			pcall(function() watermarkWidthSlider:Set(v, true) end)
+		end
+
+		local watermarkHeightSlider = S:Slider({
+			name        = "Top Right Height",
+			description = "Changes the top-right status bar height",
+			min         = 24,
+			max         = 72,
+			default     = watermarkSize.Height,
+			round       = 1,
+			suffix      = "px",
+			showRange   = false,
+			callback    = function(value)
+				GUI:SetWatermarkHeight(value)
+			end,
+		})
+		GUI._cfgSyncCallbacks.watermarkHeight = function(v)
+			pcall(function() watermarkHeightSlider:Set(v, true) end)
+		end
+
+		S:Button({
+			name        = "Reset Top Right Size",
+			description = "Restores the top-right status bar to auto width and default height",
+			callback    = function()
+				GUI:ResetWatermarkSize()
+				GUI.notify("Top Right Mini UI", "Size reset", 2, "success")
+			end,
+		})
+
 		S:Button({
 			name        = "Reset Top Right Position",
 			description = "Moves the top-right mini bar back to its default spot",
